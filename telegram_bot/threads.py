@@ -1,6 +1,7 @@
-"""Đăng bài (Text + Ảnh từ assets/ẢNH MEME THREADS) lên Threads qua Threads API chính thức (graph.threads.net).
+"""Đăng bài (Text + 1 ảnh hoặc Carousel 2-3 ảnh từ assets/ẢNH MEME THREADS) lên Threads qua Threads API (graph.threads.net).
 
-- Hỗ trợ tự động đính kèm ảnh từ thư mục `assets/ẢNH MEME THREADS` (xoay vòng không trùng ảnh gần nhất, hoặc chọn theo cảm xúc nội dung).
+- Với bài POV (mở đầu bằng `Pov:` / `POV:` hoặc bài ngắn 1 câu): tự động chọn 2-3 ảnh liên quan tới nội dung và đăng dạng Carousel trượt ngang (giống hệt Viral Thread mẫu).
+- Với bài thường: đính kèm 1 ảnh meme phù hợp (hoặc 2-3 ảnh nếu yêu cầu).
 - Hỗ trợ tự động tách chuỗi bài (thread reply) nếu bài vượt quá 500 ký tự.
 """
 import json
@@ -35,18 +36,25 @@ def list_meme_images() -> list[Path]:
     return files
 
 
-def pick_meme_for_text(text: str, specific_name: str | None = None) -> Path | None:
-    """Chọn 1 ảnh meme phù hợp với nội dung bài đăng, ưu tiên không lặp lại các ảnh vừa dùng."""
+def is_pov_post(text: str) -> bool:
+    """Nhận diện bài nhánh POV Meme (bắt đầu bằng Pov: hoặc chứa Pov: ở dòng đầu)."""
+    t = text.strip().lower()
+    return t.startswith("pov:") or t.startswith("pov ") or "\npov:" in t
+
+
+def pick_memes_for_text(text: str, count: int = 1, specific_name: str | None = None) -> list[Path]:
+    """Chọn `count` ảnh meme (1 hoặc 2-3 ảnh khác nhau) liên quan tới nội dung bài đăng."""
     files = list_meme_images()
     if not files:
-        return None
+        return []
+
+    count = max(1, min(count, len(files)))
 
     if specific_name:
         for f in files:
             if specific_name.lower() in f.name.lower():
-                return f
+                return [f]
 
-    # Đọc lịch sử ảnh đã dùng để xoay vòng
     used: list[str] = []
     if IMAGE_STATE_FILE.exists():
         try:
@@ -54,30 +62,47 @@ def pick_meme_for_text(text: str, specific_name: str | None = None) -> Path | No
         except Exception:
             used = []
 
-    available = [f for f in files if f.name not in used[-min(len(files) - 1, 5) :]] if len(files) > 1 else files
+    recent_cutoff = min(max(len(files) - count, 1), 4)
+    available = [f for f in files if f.name not in used[-recent_cutoff:]]
+    if len(available) < count:
+        available = list(files)
 
-    # Gợi ý theo từ khóa cảm xúc trong bài
     t_low = text.lower()
     keyword_map = {
-        "khoc": ["bad ending", "bắt nhầm", "tiếc", "ức chế", "nản", "cháy", "tiền", "ví", "nhớ lại", "tự thưởng", "hối hận"],
-        "gian-doi": ["dối", "mâu thuẫn", "nghi ngờ", "đổ tội", "cãi", "check var", "thề", "hung thủ", "bạn thân"],
-        "xin-loi": ["nhầm", "xin lỗi", "oan"],
-        "hai-huoc": ["cà phê", "bạn bè", "cười", "tụ tập", "pov"],
-        "bua": ["túi mù", "xé pack", "thám tử", "xoắn não"],
+        "khoc": ["bad ending", "bắt nhầm", "tiếc", "ức chế", "nản", "cháy", "tiền", "ví", "nhớ lại", "tự thưởng", "hối hận", "khóc"],
+        "gian-doi": ["dối", "mâu thuẫn", "nghi ngờ", "đổ tội", "cãi", "check var", "thề", "hung thủ", "bạn thân", "lật mặt", "phản bội"],
+        "xin-loi": ["nhầm", "xin lỗi", "oan", "lỡ"],
+        "bieu-cam": ["nhìn", "ánh mắt", "khi", "pov", "điện thoại", "im lặng", "ngồi"],
+        "hai-huoc": ["cà phê", "bạn bè", "cười", "tụ tập", "vui", "hài"],
+        "bua": ["túi mù", "xé", "thám tử", "xoắn não", "hồ sơ", "lời khai"],
     }
-    matched = []
-    for key, words in keyword_map.items():
-        if any(w in t_low for w in words):
-            matched.extend([f for f in available if key in f.name.lower()])
 
-    chosen = random.choice(matched) if matched else random.choice(available)
+    scored: list[tuple[int, float, Path]] = []
+    for f in available:
+        fname = f.name.lower()
+        score = 0
+        for key, words in keyword_map.items():
+            if key in fname and any(w in t_low for w in words):
+                score += 2
+        if f.name not in used[-5:]:
+            score += 1
+        scored.append((score, random.random(), f))
 
-    used.append(chosen.name)
+    scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    chosen = [item[2] for item in scored[:count]]
+
+    for c in chosen:
+        used.append(c.name)
     try:
-        IMAGE_STATE_FILE.write_text(json.dumps({"used": used[-20:]}, ensure_ascii=False, indent=2), encoding="utf-8")
+        IMAGE_STATE_FILE.write_text(json.dumps({"used": used[-25:]}, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:
         pass
     return chosen
+
+
+def pick_meme_for_text(text: str, specific_name: str | None = None) -> Path | None:
+    res = pick_memes_for_text(text, count=1, specific_name=specific_name)
+    return res[0] if res else None
 
 
 def upload_public_image_url(image_path: Path) -> str:
@@ -100,7 +125,7 @@ def upload_public_image_url(image_path: Path) -> str:
     except Exception:
         pass
 
-    # 2. Dự phòng: 0x0.st / tmpfiles direct link
+    # 2. Dự phòng: tmpfiles direct link
     try:
         with image_path.open("rb") as f:
             r = requests.post(
@@ -159,12 +184,57 @@ def _publish_single(
     token: str,
     text: str,
     reply_to_id: str | None = None,
-    image_url: str | None = None,
+    image_urls: list[str] | None = None,
 ) -> str:
-    if image_url:
+    urls = [u for u in (image_urls or []) if u]
+
+    if len(urls) >= 2:
+        # Đăng dạng CAROUSEL (2-3 ảnh trượt ngang trên cùng 1 bài Threads)
+        child_ids: list[str] = []
+        for u in urls:
+            r_item = requests.post(
+                f"{BASE}/{uid}/threads",
+                data={
+                    "media_type": "IMAGE",
+                    "image_url": u,
+                    "is_carousel_item": "true",
+                    "access_token": token,
+                },
+                timeout=30,
+            )
+            d_item = r_item.json()
+            if "id" in d_item:
+                child_ids.append(d_item["id"])
+        if len(child_ids) >= 2:
+            time.sleep(4)
+            payload = {
+                "media_type": "CAROUSEL",
+                "children": ",".join(child_ids),
+                "text": text,
+                "access_token": token,
+            }
+            if reply_to_id:
+                payload["reply_to_id"] = reply_to_id
+            r_car = requests.post(f"{BASE}/{uid}/threads", data=payload, timeout=30)
+            d_car = r_car.json()
+            if "id" not in d_car:
+                raise RuntimeError(f"Tạo CAROUSEL container lỗi: {d_car}")
+            time.sleep(5)
+            r_pub = requests.post(
+                f"{BASE}/{uid}/threads_publish",
+                data={"creation_id": d_car["id"], "access_token": token},
+                timeout=30,
+            )
+            pub = r_pub.json()
+            if "id" not in pub:
+                raise RuntimeError(f"Publish CAROUSEL lỗi: {pub}")
+            return pub["id"]
+
+    # Đăng 1 ảnh hoặc chỉ Text
+    if len(urls) == 1:
         payload = {
             "media_type": "IMAGE",
-            "image_url": image_url,
+            "image_url": urls[0],
             "text": text,
             "access_token": token,
         }
@@ -179,8 +249,7 @@ def _publish_single(
     if "id" not in data:
         raise RuntimeError(f"Tạo container lỗi: {data}")
 
-    # Ảnh cần thời gian xử lý container trên server Meta lâu hơn text thuần (khoảng 5 giây)
-    time.sleep(5 if image_url else 3)
+    time.sleep(5 if urls else 3)
 
     r = requests.post(
         f"{BASE}/{uid}/threads_publish",
@@ -193,24 +262,39 @@ def _publish_single(
     return pub["id"]
 
 
-def publish_text(text: str, with_meme: bool = True, specific_image: str | None = None) -> tuple[str, str | None]:
-    """Đăng bài lên Threads kèm ảnh từ `assets/ẢNH MEME THREADS`. Trả về (post_id, tên_ảnh_đã_dùng)."""
+def publish_text(
+    text: str,
+    with_meme: bool = True,
+    specific_image: str | None = None,
+    image_count: int | None = None,
+) -> tuple[str, str | None]:
+    """Đăng bài lên Threads kèm ảnh từ `assets/ẢNH MEME THREADS`.
+    - Nếu là bài POV (hoặc image_count >= 2): tự động chọn 2-3 ảnh liên quan và đăng dạng Carousel.
+    Trả về (post_id, chuỗi_tên_ảnh_đã_dùng).
+    """
     text = text.strip()
     if not text:
         raise ValueError("Bài trống")
     uid = os.environ["THREADS_USER_ID"]
     token = os.environ["THREADS_ACCESS_TOKEN"]
 
-    image_url = None
-    used_image_name = None
+    image_urls: list[str] = []
+    used_image_names: list[str] = []
     if with_meme and os.environ.get("THREADS_ATTACH_MEME", "true").lower() in ("1", "true", "yes"):
-        img_path = pick_meme_for_text(text, specific_image)
-        if img_path:
+        if image_count is None:
+            # Bài POV tự động lấy 2 hoặc 3 ảnh liên quan
+            target_count = random.choice([2, 3]) if is_pov_post(text) else 1
+        else:
+            target_count = image_count
+
+        img_paths = pick_memes_for_text(text, count=target_count, specific_name=specific_image)
+        for img_path in img_paths:
             try:
-                image_url = upload_public_image_url(img_path)
-                used_image_name = img_path.name
+                u = upload_public_image_url(img_path)
+                image_urls.append(u)
+                used_image_names.append(img_path.name)
             except Exception as e:
-                print("Cảnh báo upload ảnh meme, chuyển sang đăng text:", e)
+                print("Cảnh báo upload ảnh meme:", e)
 
     chunks = split_into_chunks(text, MAX_LEN)
     root_id = None
@@ -224,15 +308,15 @@ def publish_text(text: str, with_meme: bool = True, specific_image: str | None =
                 token,
                 chunk,
                 reply_to_id=prev_id,
-                image_url=image_url if idx == 0 else None,
+                image_urls=image_urls if idx == 0 else None,
             )
         except Exception:
-            if idx == 0 and image_url:
-                # Nếu host ảnh bị chặn đột xuất, tự động fallback đăng text để không rớt bài
-                used_image_name = None
-                prev_id = _publish_single(uid, token, chunk, reply_to_id=prev_id, image_url=None)
+            if idx == 0 and image_urls:
+                used_image_names = []
+                prev_id = _publish_single(uid, token, chunk, reply_to_id=prev_id, image_urls=None)
             else:
                 raise
         if root_id is None:
             root_id = prev_id
-    return (root_id or ""), used_image_name
+    joined_names = ", ".join(used_image_names) if used_image_names else None
+    return (root_id or ""), joined_names
