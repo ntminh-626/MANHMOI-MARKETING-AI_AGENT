@@ -267,8 +267,10 @@ def publish_text(
     with_meme: bool = True,
     specific_image: str | None = None,
     image_count: int | None = None,
+    preselected_images: list[Path] | None = None,
 ) -> tuple[str, str | None]:
     """Đăng bài lên Threads kèm ảnh từ `assets/ẢNH MEME THREADS`.
+    - Nếu truyền `preselected_images` (đã duyệt trước qua /wait trên Telegram), đăng chính xác các ảnh đó.
     - Nếu là bài POV (hoặc image_count >= 2): tự động chọn 2-3 ảnh liên quan và đăng dạng Carousel.
     Trả về (post_id, chuỗi_tên_ảnh_đã_dùng).
     """
@@ -281,13 +283,15 @@ def publish_text(
     image_urls: list[str] = []
     used_image_names: list[str] = []
     if with_meme and os.environ.get("THREADS_ATTACH_MEME", "true").lower() in ("1", "true", "yes"):
-        if image_count is None:
-            # Bài POV tự động lấy 2 hoặc 3 ảnh liên quan
-            target_count = random.choice([2, 3]) if is_pov_post(text) else 1
+        if preselected_images is not None:
+            img_paths = [p for p in preselected_images if p.exists()]
         else:
-            target_count = image_count
+            if image_count is None:
+                target_count = random.choice([2, 3]) if is_pov_post(text) else 1
+            else:
+                target_count = image_count
+            img_paths = pick_memes_for_text(text, count=target_count, specific_name=specific_image)
 
-        img_paths = pick_memes_for_text(text, count=target_count, specific_name=specific_image)
         for img_path in img_paths:
             try:
                 u = upload_public_image_url(img_path)

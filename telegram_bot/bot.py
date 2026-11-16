@@ -8,12 +8,14 @@ import csv
 import datetime
 import json
 import os
+import random
 import re
 import socket
 import sys
 import time
 from pathlib import Path
 
+import random
 import requests
 
 import threads
@@ -78,21 +80,31 @@ def save_schedule(data: dict) -> None:
     SCHEDULE_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def load_drafts() -> tuple[dict[str, str], int]:
+def load_drafts() -> tuple[dict[str, dict], int]:
     if not DRAFTS_FILE.exists():
         return {}, 0
     try:
         data = json.loads(DRAFTS_FILE.read_text(encoding="utf-8"))
-        return data.get("items", {}), int(data.get("counter", 0))
+        raw_items = data.get("items", {})
+        normalized: dict[str, dict] = {}
+        for k, v in raw_items.items():
+            if isinstance(v, str):
+                normalized[k] = {"text": v, "images": []}
+            elif isinstance(v, dict):
+                normalized[k] = {"text": v.get("text", ""), "images": v.get("images", [])}
+        return normalized, int(data.get("counter", 0))
     except Exception:
         return {}, 0
 
 
-def save_draft_item(post_text: str) -> int:
+def save_draft_item(post_text: str, image_names: list[str] | None = None) -> int:
     items, counter = load_drafts()
     counter += 1
-    items[str(counter)] = post_text
-    # Chỉ giữ tối đa 20 bản nháp gần nhất để gọn file
+    if image_names is None:
+        target_cnt = random.choice([2, 3]) if threads.is_pov_post(post_text) else 1
+        picked = threads.pick_memes_for_text(post_text, count=target_cnt)
+        image_names = [p.name for p in picked]
+    items[str(counter)] = {"text": post_text, "images": image_names}
     if len(items) > 20:
         oldest = sorted(items.keys(), key=int)[:-20]
         for k in oldest:
@@ -101,17 +113,48 @@ def save_draft_item(post_text: str) -> int:
     return counter
 
 
-def pop_draft_item(draft_id: int | None = None) -> tuple[int | None, str | None]:
-    """Lấy bản nháp theo số (hoặc bản nháp mới nhất nếu không truyền số)."""
-    items, counter = load_drafts()
+def peek_draft_item(draft_id: int | None = None) -> tuple[int | None, str | None, list[Path]]:
+    items, _ = load_drafts()
     if not items:
-        return None, None
+        return None, None, []
     key = str(draft_id) if draft_id is not None else sorted(items.keys(), key=int)[-1]
     if key not in items:
-        return None, None
-    text = items.pop(key)
+        return None, None, []
+    entry = items[key]
+    all_memes = {p.name: p for p in threads.list_meme_images()}
+    paths = [all_memes[name] for name in entry.get("images", []) if name in all_memes]
+    return int(key), entry.get("text", ""), paths
+
+
+def update_draft_images(draft_id: int | None = None) -> tuple[int | None, str | None, list[Path]]:
+    """Đổi bộ ảnh Meme khác cho bản nháp đang chờ duyệt."""
+    items, counter = load_drafts()
+    if not items:
+        return None, None, []
+    key = str(draft_id) if draft_id is not None else sorted(items.keys(), key=int)[-1]
+    if key not in items:
+        return None, None, []
+    post_text = items[key].get("text", "")
+    target_cnt = random.choice([2, 3]) if threads.is_pov_post(post_text) else 1
+    picked = threads.pick_memes_for_text(post_text, count=target_cnt)
+    items[key]["images"] = [p.name for p in picked]
     DRAFTS_FILE.write_text(json.dumps({"counter": counter, "items": items}, ensure_ascii=False, indent=2), encoding="utf-8")
-    return int(key), text
+    return int(key), post_text, picked
+
+
+def pop_draft_item(draft_id: int | None = None) -> tuple[int | None, str | None, list[Path]]:
+    """Lấy bản nháp kèm danh sách ảnh đã duyệt theo số (hoặc bản nháp mới nhất nếu không truyền số)."""
+    items, counter = load_drafts()
+    if not items:
+        return None, None, []
+    key = str(draft_id) if draft_id is not None else sorted(items.keys(), key=int)[-1]
+    if key not in items:
+        return None, None, []
+    entry = items.pop(key)
+    DRAFTS_FILE.write_text(json.dumps({"counter": counter, "items": items}, ensure_ascii=False, indent=2), encoding="utf-8")
+    all_memes = {p.name: p for p in threads.list_meme_images()}
+    paths = [all_memes[name] for name in entry.get("images", []) if name in all_memes]
+    return int(key), entry.get("text", ""), paths
 
 
 # ==============================================================================
@@ -240,6 +283,51 @@ def send(chat_id: int, text: str) -> None:
         tg("sendMessage", chat_id=chat_id, text=text[i : i + 4000])
 
 
+def send_photo_preview(chat_id: int, image_paths: list[Path], caption: str = "") -> None:
+    """Gửi 1 ảnh (sendPhoto) hoặc album 2-3 ảnh (sendMediaGroup) trực tiếp vào Telegram để người dùng xem trước."""
+    valid = [p for p in image_paths if p.exists()]
+    if not valid:
+        if caption:
+            send(chat_id, caption)
+        return
+    try:
+        if len(valid) == 1:
+            with valid[0].open("rb") as f:
+                requests.post(
+                    f"{TG}/sendPhoto",
+                    data={"chat_id": str(chat_id), "caption": caption[:1020]},
+                    files={"photo": (valid[0].name, f, "image/jpeg")},
+                    timeout=60,
+                )
+        else:
+            media = []
+            files = {}
+            for idx, p in enumerate(valid):
+                key = f"photo{idx}"
+                item = {"type": "photo", "media": f"attach://{key}"}
+                if idx == 0 and caption:
+                    item["caption"] = caption[:1020]
+                media.append(item)
+                files[key] = (p.name, p.open("rb"), "image/jpeg")
+            try:
+                requests.post(
+                    f"{TG}/sendMediaGroup",
+                    data={"chat_id": str(chat_id), "media": json.dumps(media)},
+                    files=files,
+                    timeout=60,
+                )
+            finally:
+                for _, ftuple in files.items():
+                    try:
+                        ftuple[1].close()
+                    except Exception:
+                        pass
+    except Exception as e:
+        print("send_photo_preview error:", e)
+        if caption:
+            send(chat_id, caption)
+
+
 def request_openrouter_with_retry(messages: list[dict[str, str]], temperature: float = 0.7) -> str:
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -310,9 +398,10 @@ HELP_TEXT = """📖 BẢNG ĐIỀU KHIỂN MÁNH MỐI BOT (TỐI GIẢN)
 • /mofu  — Bài tranh luận lời khai vụ Tuyệt Tác Tàn Tro.
 • /bofu  — Bài mở đặt trước (Gói 150k & Combo 220k).
 
-2️⃣ NHÓM DUYỆT BÀI (2 lệnh):
-• /wait  — Bật/Tắt chế độ Chờ duyệt (hoặc gõ kèm: `/pov /wait`).
-• /dang  — Duyệt đăng bản nháp mới nhất lên Threads (hoặc `/dang <số>`).
+2️⃣ NHÓM DUYỆT BÀI & ĐỔI ẢNH (3 lệnh):
+• /wait  — Bật/Tắt chế độ Chờ duyệt kèm gửi ảnh Preview ngay trên Telegram (hoặc gõ: `/pov /wait`).
+• /doi   — Đổi bộ ảnh Meme khác cho bản nháp đang chờ duyệt (gửi lại ảnh Preview mới).
+• /dang  — Duyệt đăng bản nháp + đúng bộ ảnh đã xem trước lên Threads.
 
 3️⃣ NHÓM HẸN GIỜ & KIỂM TRA (3 lệnh):
 • /lich  — Xem lịch hẹn (Đổi giờ: `/lich 12:00 20:00` | Bật/tắt: `/lich on` hoặc `/lich off`).
@@ -379,23 +468,29 @@ async def execute_and_publish(
     if found:
         if auto_pub and threads.configured():
             for did in new_ids:
-                _, post_text = pop_draft_item(did)
+                _, post_text, pre_imgs = pop_draft_item(did)
                 if not post_text:
                     continue
                 try:
-                    pid, img_name = await asyncio.to_thread(threads.publish_text, post_text)
+                    pid, img_name = await asyncio.to_thread(
+                        threads.publish_text, post_text, preselected_images=pre_imgs
+                    )
                     img_note = f" kèm ảnh `{img_name}`" if img_name else ""
                     send(chat_id, f"✅ Đã tự động đăng bài #{did}{img_note} lên Threads (id {pid}).")
                 except Exception as e:
-                    re_id = save_draft_item(post_text)
+                    re_id = save_draft_item(post_text, [p.name for p in pre_imgs])
                     send(chat_id, f"⚠️ Tự đăng lỗi: {e}. Đã lưu lại nháp #{re_id}, gõ `/dang` để thử lại.")
         else:
-            ids_str = ", ".join(f"#{i}" for i in new_ids)
-            send(
-                chat_id,
-                f"⏸️ CHỜ DUYỆT: Đã lưu bản nháp {ids_str} (chưa đăng lên Threads).\n"
-                f"👉 Gõ `/dang` để đăng ngay bản nháp mới nhất!",
-            )
+            for did in new_ids:
+                _, post_text, pre_imgs = peek_draft_item(did)
+                img_names_str = ", ".join(p.name for p in pre_imgs) or "(không ảnh)"
+                preview_caption = (
+                    f"⏸️ XEM TRƯỚC BẢN NHÁP #{did} (Chưa đăng):\n\n"
+                    f"{post_text}\n\n"
+                    f"🖼️ Ảnh đính kèm ({len(pre_imgs)}): {img_names_str}\n"
+                    f"👉 Gõ `/dang` để đăng ngay, hoặc `/doi` để đổi ảnh Meme khác!"
+                )
+                await asyncio.to_thread(send_photo_preview, chat_id, pre_imgs, preview_caption)
 
 
 async def scheduler_loop(lock: asyncio.Lock) -> None:
@@ -475,14 +570,31 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
         send(chat_id, state_msg)
         return
 
-    # 3. Nhóm /dang (Gõ `/dang` không cần nhớ số -> tự đăng bản nháp mới nhất)
+    # 3. Nhóm /doi (Đổi ảnh Meme khác cho bản nháp đang chờ duyệt) & /dang (Duyệt đăng)
+    if t_low in ("/doi", "/doi_anh") or t_low.startswith("/doi "):
+        m = re.match(r"^/doi(?:_anh)?\s+(\d+)$", t_low)
+        target_id = int(m.group(1)) if m else None
+        did, post_text, new_imgs = update_draft_images(target_id)
+        if not post_text:
+            send(chat_id, "Hiện chưa có bản nháp nào đang chờ duyệt để đổi ảnh.")
+            return
+        img_names_str = ", ".join(p.name for p in new_imgs) or "(không ảnh)"
+        caption = (
+            f"🔄 ĐÃ ĐỔI ẢNH MỚI CHO BẢN NHÁP #{did}:\n\n"
+            f"{post_text}\n\n"
+            f"🖼️ Ảnh mới ({len(new_imgs)}): {img_names_str}\n"
+            f"👉 Ưng ý thì gõ `/dang`, hoặc gõ `/doi` tiếp để chọn bộ ảnh khác!"
+        )
+        await asyncio.to_thread(send_photo_preview, chat_id, new_imgs, caption)
+        return
+
     if t_low == "/dang" or t_low.startswith("/dang "):
         if not threads.configured():
             send(chat_id, "Chưa cấu hình THREADS_USER_ID / THREADS_ACCESS_TOKEN trong .env.")
             return
         m = re.match(r"^/dang\s+(\d+)$", t_low)
         target_id = int(m.group(1)) if m else None
-        did, post_text = pop_draft_item(target_id)
+        did, post_text, pre_imgs = pop_draft_item(target_id)
         if not post_text:
             items, _ = load_drafts()
             avail = ", ".join(f"#{k}" for k in items.keys()) or "không có"
@@ -490,11 +602,13 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
             return
         tg("sendChatAction", chat_id=chat_id, action="typing")
         try:
-            pid, img_name = await asyncio.to_thread(threads.publish_text, post_text)
+            pid, img_name = await asyncio.to_thread(
+                threads.publish_text, post_text, preselected_images=pre_imgs
+            )
             img_note = f" kèm ảnh `{img_name}`" if img_name else ""
             send(chat_id, f"✅ Đã duyệt đăng bản nháp #{did}{img_note} lên Threads (id {pid}).")
         except Exception as e:
-            re_id = save_draft_item(post_text)
+            re_id = save_draft_item(post_text, [p.name for p in pre_imgs])
             send(chat_id, f"⚠️ Đăng lỗi: {e}. Đã giữ lại bản nháp #{re_id}.")
         return
 
