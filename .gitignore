@@ -1,0 +1,5 @@
+telegram_bot/.env
+__pycache__/
+*.pyc
+docx_text.txt
+Board game_ Blindbox - Phá án.docx

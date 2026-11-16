@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "daily_times": [
+    "12:00",
+    "20:00"
+  ],
+  "last_daily_runs": {},
+  "one_off": []
+}
