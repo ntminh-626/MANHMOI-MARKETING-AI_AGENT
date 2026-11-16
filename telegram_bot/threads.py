@@ -59,10 +59,10 @@ def pick_meme_for_text(text: str, specific_name: str | None = None) -> Path | No
     # Gợi ý theo từ khóa cảm xúc trong bài
     t_low = text.lower()
     keyword_map = {
-        "khoc": ["bad ending", "bắt nhầm", "tiếc", "ức chế", "nản", "cháy"],
-        "gian-doi": ["dối", "mâu thuẫn", "nghi ngờ", "đổ tội", "cãi", "check var"],
+        "khoc": ["bad ending", "bắt nhầm", "tiếc", "ức chế", "nản", "cháy", "tiền", "ví", "nhớ lại", "tự thưởng", "hối hận"],
+        "gian-doi": ["dối", "mâu thuẫn", "nghi ngờ", "đổ tội", "cãi", "check var", "thề", "hung thủ", "bạn thân"],
         "xin-loi": ["nhầm", "xin lỗi", "oan"],
-        "hai-huoc": ["cà phê", "bạn bè", "cười", "tụ tập"],
+        "hai-huoc": ["cà phê", "bạn bè", "cười", "tụ tập", "pov"],
         "bua": ["túi mù", "xé pack", "thám tử", "xoắn não"],
     }
     matched = []

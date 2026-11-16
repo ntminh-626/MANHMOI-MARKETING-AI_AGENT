@@ -169,6 +169,9 @@ def build_instructions(prompt: str) -> str:
         "  + Với bài TOFU/MOFU trên Threads: KHÔNG cần nhồi nhét tên thương hiệu hay thông số sản phẩm; hãy kể câu chuyện tự nhiên (ví dụ: ngồi xé túi mù đọc thẻ lời khai cãi nhau với đám bạn...) để người đọc tự tò mò hỏi game gì dưới comment.\n"
         "  + HẠN CHẾ XUỐNG DÒNG / TÁCH DÒNG NHIỀU: Viết liền mạch thành 1 đến tối đa 2 đoạn văn ngắn gọn cho cả bài. Tuyệt đối KHÔNG ngắt mỗi câu một dòng rời rạc. Dùng dấu '...' và 1-2 từ kéo dài chữ cái cuối vừa đủ (haizzz...., ờmmmm..., cayyyy, nản nganggg...).\n"
         "  + GIỚI HẠN ICON: Cả bài CHỈ DÙNG TỐI ĐA 1 EMOJI DUY NHẤT (hoặc chỉ dùng '=))))', ':)))'). Tuyệt đối không rải nhiều icon.\n"
+        "- HAI NHÁNH BÀI TOFU TRÊN THREADS:\n"
+        "  + Nhánh A (POV Meme 1 câu - KHI người dùng gõ `/tofu pov`, `/pov`, hoặc luân phiên 50% khi gõ `/tofu`): Chỉ viết ĐÚNG 1 CÂU DUY NHẤT (12-28 chữ, không xuống dòng, 0 icon) mở đầu bằng 'Pov: T đang...' hoặc 'Pov: Khi t...' diễn tả khoảnh khắc cực kỳ đời thường và hài hước để khớp với bức ảnh Meme bên dưới (ví dụ: bị bạn thân lừa khi suy luận phá án, hẹn đi cà phê mà cả đám bấm điện thoại, tự thưởng xé túi mù quá tay, cãi nhau tìm hung thủ xong ăn Bad Ending...).\n"
+        "  + Nhánh B (Tâm sự đời thường 1-2 đoạn): Kể lại câu chuyện đi cà phê với bạn bè / xé túi mù đọc thẻ lời khai liền mạch 1-2 đoạn ngắn, hạn chế xuống dòng, 0-1 icon, không seeding lộ liễu.\n"
         "- Mỗi bài Threads BẮT BUỘC ngắn gọn dưới 400 ký tự để vừa khít 1 post Threads. Đặt nguyên văn nội dung đăng trong một khối ```threads ... ```; không đưa báo cáo hay ghi chú vào trong khối đó.\n"
         "- Để hệ thống tự động ghi vào content-log.csv, ở cuối câu trả lời (ngay sau khối BÁO CÁO HOÀN THÀNH), hãy xuất thêm một khối ```csv_log ... ``` chứa các dòng mới theo đúng định dạng:\n"
         f'{today},TOFU/MOFU/BOFU,Threads/Facebook,"Angle_Used","Opening_Hook"\n'
@@ -232,7 +235,9 @@ HELP_TEXT = """📖 DANH SÁCH LỆNH MÁNH MỐI MARKETING BOT
 
 1️⃣ LỆNH TẠO BÀI & TỰ ĐĂNG THREADS:
 • /tofu [số lượng / chủ đề]
-  Ví dụ: /tofu 1 hoặc /tofu 1 tụ tập bạn bè không bấm điện thoại
+  Ví dụ: /tofu 1 (tự chọn nhánh tâm sự hoặc POV)
+• /tofu pov (hoặc /pov)
+  Viết bài TOFU nhánh Viral Thread 1 câu cực ngắn kiểu "Pov: T đang..." đi kèm ảnh Meme biểu cảm.
 • /mofu [số lượng / manh mối]
   Ví dụ: /mofu 1 Threads hoặc /mofu 1 mâu thuẫn lời khai Lê và Mai
 • /bofu [số lượng / góc bán]
@@ -607,6 +612,12 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock) -> None:
             send(chat_id, f"✅ Đã đăng lên Threads{img_note} (id {pid}).")
         except Exception as e:
             send(chat_id, f"Đăng lỗi: {e}")
+        return
+
+    if t_low == "/pov" or t_low.startswith("/pov "):
+        extra = text[4:].strip()
+        pov_prompt = f"/tofu 1 Threads theo nhánh POV Meme 1 câu cực ngắn mở đầu bằng 'Pov: T...' {extra}".strip()
+        await execute_and_publish(chat_id, pov_prompt, lock)
         return
 
     await execute_and_publish(chat_id, text, lock)

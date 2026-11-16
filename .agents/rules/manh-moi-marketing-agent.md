@@ -36,8 +36,10 @@ Recognize and execute these exact user shortcuts (works via Antigravity chat or 
   3. Output a brief readiness checklist and list any `[...]` placeholders in Section 3.4 that still need case-specific details.
 
 - **`/tofu [số lượng/chủ đề]` (Awareness - Threads & Facebook):**
-  - *Skills:* `marketing-psychology` (Curiosity Gap, Pattern Interrupt) + `copywriting` + `copy-editing`.
-  - *Focus:* Hit Customer Jobs/Pains (gathering without phones, 5-minute rules, Rashomon mystery vibe). Zero hard-selling.
+  - *Skills:* `marketing-psychology` (Curiosity Gap, Pattern Interrupt, Relatable Humor) + `copywriting` + `copy-editing`.
+  - *2 Nhánh nội dung TOFU (luân phiên hoặc gọi trực tiếp bằng `/tofu pov` / `/tofu meme`):*
+    1. **Nhánh 1 - One-liner POV Meme (Viral Thread 1–2 câu + Ảnh Meme biểu cảm):** Cực ngắn (12–30 chữ, chỉ 1 câu duy nhất mở đầu bằng `Pov:` hoặc `POV:` hoặc tình huống sát sườn, dùng từ viết tắt tự nhiên như `t`, `mn`, `đứa bạn`...), khớp hoàn hảo với ảnh meme biểu cảm bên dưới để kéo tương tác đồng cảm khủng (Ví dụ: *"Pov: T đang nhớ lại ánh mắt của con bạn thân sau khi nó thề sống thề chết nó không phải hung thủ nhưng lật thẻ kết quả lên thì chính là nó"* hoặc *"Pov: Cả nhóm hẹn nhau đi cà phê tâm sự chuyện cuộc đời nhưng đứa nào cũng cắm mặt vô điện thoại suốt 2 tiếng"*).
+    2. **Nhánh 2 - Tâm sự trải nghiệm đời thường (1–2 đoạn ngắn liền mạch):** Kể chuyện đi chơi cà phê tụ tập bạn bè, xé túi mù đọc thẻ lời khai cãi nhau, giải tỏa căng thẳng sau giờ làm, không mùi quảng cáo.
 
 - **`/mofu [số lượng/manh mối]` (Engagement & ARG Deduction - Threads & Facebook):**
   - *Skills:* `copywriting` + `copy-editing` + `image` (for crime-scene/evidence visual prompts).
@@ -108,8 +110,12 @@ Recognize and execute these exact user shortcuts (works via Antigravity chat or 
 ### 4.2. Channel Blueprints & Few-Shot Examples
 
 #### A. Threads Blueprint (Ngắn gọn < 380 ký tự, 1–2 đoạn liền mạch, hạn chế xuống dòng, 0–1 icon, không mùi quảng cáo)
-- **Xưng hô:** *tui / mình / cả đám / mấy đứa bạn*.
-- **Mẫu chuẩn 1 (Few-shot - TOFU - Tâm sự tụ tập bạn bè, liền mạch 1–2 đoạn):**
+- **Xưng hô:** *t / tui / mình / cả đám / mấy đứa bạn*.
+- **Mẫu chuẩn 1A (Few-shot - TOFU Nhánh POV Meme 1 câu cực ngắn kiểu Viral Thread + Ảnh Meme):**
+  > Pov: T đang nhớ lại lời thề độc của thằng bạn thân trước khi cả đám lật hồ sơ lên và phát hiện nó chính là hung thủ
+- **Mẫu chuẩn 1B (Few-shot - TOFU Nhánh POV Meme đời thường tụ tập/xé túi mù):**
+  > Pov: T đang nhìn lại cái ví sau khi bảo "chỉ xé thêm đúng 1 túi mù nhân vật nữa thôi rồi đi ngủ"
+- **Mẫu chuẩn 1C (Few-shot - TOFU Nhánh Tâm sự tụ tập bạn bè, liền mạch 1–2 đoạn):**
   > Haizzz.... tối qua hẹn 3 đứa bạn ra cà phê tính ngồi tám chuyện chút mà chưa được 15 phút là đứa nào đứa nấy lại rút điện thoại ra lướt trong vô thức... Cũng may tui thủ sẵn mấy gói túi mù hồ sơ vụ án trong balo, quăng ra bàn bảo mỗi đứa tự xé 1 túi đọc lời khai đi rồi tìm coi ai là hung thủ.
   >
   > Tự nhiên cả bàn bỏ điện thoại xuống cãi nhau um sùm suốt cả tiếng đồng hồ luôn =)))) Công nhận lâu lắm rồi đi cà phê mới thấy tụi nó nói chuyện với nhau nhiều vậy á 😭
