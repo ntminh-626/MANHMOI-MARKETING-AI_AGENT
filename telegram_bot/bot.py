@@ -52,6 +52,7 @@ TG = f"https://api.telegram.org/bot{TOKEN}"
 def load_schedule() -> dict:
     default = {
         "enabled": True,
+        "wait_approval": False,
         "daily_times": ["12:00", "20:00"],
         "last_daily_runs": {},
         "one_off": [],
@@ -238,6 +239,8 @@ HELP_TEXT = """📖 DANH SÁCH LỆNH MÁNH MỐI MARKETING BOT
   Ví dụ: /bofu 1 Threads hoặc /bofu 1 Facebook
 • /auto
   Tự động tính tỷ lệ 40% TOFU / 40% MOFU / 20% BOFU từ nhật ký, chọn tầng đang thiếu nhất và viết 1 bài đăng lên Threads ngay.
+• /wait (hoặc gắn /wait vào cuối lệnh như: /tofu 1 /wait)
+  Chưa đăng vội, lưu thành bản nháp gửi về Telegram kèm ảnh dự kiến để đợi bạn duyệt rồi mới gõ /dang [số] để đăng. (Gõ /wait một mình để Bật/Tắt chế độ luôn đợi duyệt).
 
 2️⃣ LỆNH HẸN GIỜ TỰ ĐỘNG ĐĂNG (SCHEDULER):
 • /lich
@@ -352,18 +355,29 @@ def call_openrouter_sync(chat_id: int, prompt: str) -> str:
     return cleaned_reply
 
 
-async def execute_and_publish(chat_id: int, prompt: str, lock: asyncio.Lock, prefix_note: str = "") -> None:
-    """Chạy lệnh tạo nội dung, gửi về Telegram và tự động đăng các khối ```threads ... ``` lên Threads."""
+async def execute_and_publish(
+    chat_id: int,
+    prompt: str,
+    lock: asyncio.Lock,
+    prefix_note: str = "",
+    force_wait: bool = False,
+) -> None:
+    """Chạy lệnh tạo nội dung, gửi về Telegram và tự động đăng (hoặc đợi duyệt nếu có /wait)."""
+    has_wait_flag = bool(re.search(r"(?:^|\s)/wait(?:\s|$)", prompt, flags=re.I))
+    clean_prompt = re.sub(r"(?:^|\s)/wait(?:\s|$)", " ", prompt, flags=re.I).strip()
+    sched = load_schedule()
+    wait_mode = force_wait or has_wait_flag or bool(sched.get("wait_approval", False))
+
     tg("sendChatAction", chat_id=chat_id, action="typing")
     if prefix_note:
         send(chat_id, prefix_note)
     async with lock:
         try:
-            reply = await asyncio.to_thread(call_openrouter_sync, chat_id, prompt)
+            reply = await asyncio.to_thread(call_openrouter_sync, chat_id, clean_prompt)
         except Exception as e:
             reply = f"Lỗi agent ({MODEL}): {e}"
     found = re.findall(r"```threads\s*\n(.*?)```", reply, flags=re.S)
-    auto_pub = os.environ.get("AUTO_PUBLISH_THREADS", "").lower() in ("1", "true", "yes")
+    auto_pub = (not wait_mode) and (os.environ.get("AUTO_PUBLISH_THREADS", "").lower() in ("1", "true", "yes"))
     new_ids = []
     for post in found:
         did = next_draft()
@@ -381,9 +395,12 @@ async def execute_and_publish(chat_id: int, prompt: str, lock: asyncio.Lock, pre
                 except Exception as e:
                     send(chat_id, f"⚠️ Tự đăng bài #{did} lỗi: {e}. Gõ /dang {did} để thử lại.")
         else:
-            msg_hint = " (Chưa điền THREADS_USER_ID / THREADS_ACCESS_TOKEN trong .env)" if not threads.configured() else ""
-            send(chat_id, "Bản nháp Threads: " + ", ".join(map(str, new_ids)) +
-                 f". Gõ /dang <số> để đăng{msg_hint}.")
+            ids_str = ", ".join(map(str, new_ids))
+            send(
+                chat_id,
+                f"⏸️ CHỜ DUYỆT (/wait): Đã lưu bản nháp #{ids_str} (chưa đăng lên Threads).\n"
+                f"👉 Gõ `/dang {new_ids[0]}` để duyệt đăng ngay, hoặc gửi yêu cầu sửa lại!",
+            )
 
 
 async def scheduler_loop(lock: asyncio.Lock) -> None:
@@ -527,7 +544,30 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock) -> None:
         send(chat_id, f"✅ Đã đặt lịch hẹn lúc **{run_at}** sẽ tự chạy lệnh: `{cmd}`")
         return
 
-    if t_low == "/auto":
+    if t_low in ("/wait", "/wait on", "/wait off"):
+        sched = load_schedule()
+        if t_low == "/wait on":
+            sched["wait_approval"] = True
+        elif t_low == "/wait off":
+            sched["wait_approval"] = False
+        else:
+            sched["wait_approval"] = not bool(sched.get("wait_approval", False))
+        save_schedule(sched)
+        if sched["wait_approval"]:
+            send(
+                chat_id,
+                "⏸️ Đã BẬT chế độ CHỜ DUYỆT (`/wait`): Mọi bài viết tạo ra sẽ lưu nháp và đợi bạn gõ `/dang <số>` mới đăng lên Threads.\n"
+                "(Gõ lại `/wait` hoặc `/wait off` khi muốn bật lại tự động đăng thẳng).",
+            )
+        else:
+            send(
+                chat_id,
+                "▶️ Đã TẮT chế độ chờ duyệt: Bot sẽ tự động đăng thẳng lên Threads.\n"
+                "💡 Mẹo: Bạn vẫn có thể thêm `/wait` vào từng lệnh lẻ (ví dụ: `/tofu 1 /wait`) để đợi duyệt riêng bài đó.",
+            )
+        return
+
+    if t_low in ("/auto", "/auto /wait", "/wait /auto"):
         tier, counts = pick_next_funnel_tier()
         auto_cmd = f"/{tier.lower()} 1 Threads"
         await execute_and_publish(
@@ -535,6 +575,7 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock) -> None:
             auto_cmd,
             lock,
             prefix_note=f"🎯 Tự động cân bằng phễu (TOFU:{counts['TOFU']} | MOFU:{counts['MOFU']} | BOFU:{counts['BOFU']}) -> Chọn tầng **{tier}**...",
+            force_wait=("/wait" in t_low),
         )
         return
 
