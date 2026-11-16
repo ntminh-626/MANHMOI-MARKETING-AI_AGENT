@@ -97,9 +97,9 @@ Recognize and execute these exact user shortcuts (works via Antigravity chat or 
   - Viết giống hệt một người chơi / người trẻ đang kể lại câu chuyện thật tối qua đi chơi với đám bạn, hoặc đang cay cú vì một tình huống trong ván game.
   - **CẤM CÔNG THỨC SEEDING LỘ LIỄU:** Tuyệt đối KHÔNG dùng mô-típ *"Nên tụi tui mới làm Mánh Mối..."*, *"Hãy thử ngay Mánh Mối..."*, *"Mánh Mối là board game có luật 5 phút..."*, hay nhồi nhét tính năng sản phẩm vào bài.
   - Với bài **TOFU / MOFU trên Threads**: Kể thẳng vào tình huống/câu chuyện đời thường (như đang tám chuyện trên Threads). Thậm chí không cần nhắc tên "Mánh Mối" hoặc chỉ nhắc thoáng qua như một cuộc chơi đang diễn ra (ví dụ: *"tối qua cả đám ngồi xé mấy túi mù lời khai..."*, *"chơi cái bộ phá án này mà..."*). Để người đọc tự tò mò vào comment hỏi *"game gì vậy?"*.
-- **Nhịp ngắt câu tự nhiên (Human Cadence):**
-  - Câu ngắn gọn, đời thường, ngắt dòng theo nhịp nói chuyện thật (2–4 đoạn ngắn).
-  - Dùng dấu chấm lửng `...`, `....` hoặc từ kéo dài chữ cái cuối **vừa đủ 1–2 chỗ trong cả bài** (*haizzz...., ờmmmm..., cứu tuiii, cayyyy, nản nganggg, thề luônnn...*) — không lạm dụng ở mọi câu.
+- **Hạn chế xuống dòng vụn vặt (Compact Paragraphs):**
+  - Viết liền mạch thành **1–2 đoạn văn ngắn gọn** cho cả bài (tuyệt đối KHÔNG ngắt mỗi câu một dòng rời rạc kiểu thơ hay văn quảng cáo).
+  - Các câu nối tiếp nhau tự nhiên trong cùng một đoạn, dùng dấu chấm lửng `...`, `....` hoặc từ kéo dài chữ cái cuối **vừa đủ 1–2 chỗ trong cả bài** (*haizzz...., ờmmmm..., cứu tuiii, cayyyy, nản nganggg, thề luônnn...*) — không lạm dụng ở mọi câu.
 - **Giới hạn Icon / Emoji (TỐI ĐA 0–1 ICON cho cả bài):**
   - Chỉ dùng **tối đa 1 emoji duy nhất** trong cả bài đăng (ví dụ: 😭 hoặc 🫠 hoặc 💀), hoặc dùng `:)))`, `=))))` thay cho icon. Tuyệt đối KHÔNG rải 2–4 icon khắp bài.
 - **Native Vocabulary (Dùng tự nhiên khi hợp ngữ cảnh):** *xé túi mù, thẻ lời khai, bằng chứng ngoại phạm, góc nhìn, lật kèo, true ending, bad ending, check var, thao túng tâm lý*.
@@ -107,22 +107,16 @@ Recognize and execute these exact user shortcuts (works via Antigravity chat or 
 
 ### 4.2. Channel Blueprints & Few-Shot Examples
 
-#### A. Threads Blueprint (Ngắn gọn < 380 ký tự, 0–1 icon, không mùi quảng cáo/seeding)
+#### A. Threads Blueprint (Ngắn gọn < 380 ký tự, 1–2 đoạn liền mạch, hạn chế xuống dòng, 0–1 icon, không mùi quảng cáo)
 - **Xưng hô:** *tui / mình / cả đám / mấy đứa bạn*.
-- **Mẫu chuẩn 1 (Few-shot - TOFU - Tâm sự tụ tập bạn bè, 0 mùi quảng cáo):**
-  > Haizzz.... tối qua hẹn 3 đứa bạn ra cà phê, tính ngồi tám chuyện chút mà chưa được 15 phút là đứa nào đứa nấy lại rút điện thoại ra lướt trong vô thức...
+- **Mẫu chuẩn 1 (Few-shot - TOFU - Tâm sự tụ tập bạn bè, liền mạch 1–2 đoạn):**
+  > Haizzz.... tối qua hẹn 3 đứa bạn ra cà phê tính ngồi tám chuyện chút mà chưa được 15 phút là đứa nào đứa nấy lại rút điện thoại ra lướt trong vô thức... Cũng may tui thủ sẵn mấy gói túi mù hồ sơ vụ án trong balo, quăng ra bàn bảo mỗi đứa tự xé 1 túi đọc lời khai đi rồi tìm coi ai là hung thủ.
   >
-  > Cũng may tui thủ sẵn mấy gói túi mù hồ sơ vụ án trong balo, quăng ra bàn bảo mỗi đứa tự xé 1 túi đọc lời khai đi rồi tìm coi ai là hung thủ.
+  > Tự nhiên cả bàn bỏ điện thoại xuống cãi nhau um sùm suốt cả tiếng đồng hồ luôn =)))) Công nhận lâu lắm rồi đi cà phê mới thấy tụi nó nói chuyện với nhau nhiều vậy á 😭
+- **Mẫu chuẩn 2 (Few-shot - MOFU - Kể chuyện cãi nhau khi giải án, liền mạch 1–2 đoạn):**
+  > Ờmmmm... chơi phá án với đám bạn thân mới thấy lòng người đáng sợ thiệt sự :))) Mỗi đứa bóc 1 thẻ lời khai khác nhau, đứa cầm thẻ ông Giám đốc thì khăng khăng cô thợ trang điểm ngoại tình ở rào sắt, đứa cầm thẻ cô thợ trang điểm lại thề chỉ ra khuyên bạn trai cũ của nạn nhân đi về....
   >
-  > Tự nhiên cả bàn bỏ điện thoại xuống cãi nhau um sùm suốt cả tiếng đồng hồ luôn =))))
-  > Công nhận lâu lắm rồi đi cà phê mới thấy tụi nó nói chuyện với nhau nhiều vậy á 😭
-- **Mẫu chuẩn 2 (Few-shot - MOFU - Kể chuyện cãi nhau khi giải án):**
-  > Ờmmmm... chơi phá án với đám bạn thân mới thấy lòng người đáng sợ thiệt sự :)))
-  >
-  > Mỗi đứa bóc 1 thẻ lời khai khác nhau, đứa cầm thẻ ông Giám đốc thì khăng khăng cô thợ trang điểm ngoại tình ở rào sắt, đứa cầm thẻ cô thợ trang điểm lại thề chỉ ra khuyên bạn trai cũ của nạn nhân đi về....
-  >
-  > Cả đám ngồi check var một hồi xong chốt sai đúng 1 cái tên, ăn nguyên cái Bad Ending vào mặt cayyyyy không ngủ được luôn.
-  > Gặp mấy trường hợp 2 lời khai đá nhau chan chát vậy thì mọi người thường tin phe nào trước...
+  > Cả đám ngồi check var một hồi xong chốt sai đúng 1 cái tên, ăn nguyên cái Bad Ending vào mặt cayyyyy không ngủ được luôn. Gặp mấy trường hợp 2 lời khai đá nhau chan chát vậy thì mọi người thường tin phe nào trước...
 
 #### B. Facebook Blueprint (Trình bày dạng Hồ sơ vụ án / Trích lục lời khai tự nhiên)
 - **Cấu trúc:** Tiêu đề mã hồ sơ $\rightarrow$ Tình huống mâu thuẫn thực tế trong vụ án $\rightarrow$ Câu hỏi thảo luận. (Hạn chế tối đa icon, giữ giọng điều tra cuốn hút).

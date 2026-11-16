@@ -34,10 +34,10 @@
 CTA: link Bio Threads hoặc nhắn Fanpage Facebook.
 
 ## Giọng thương hiệu (Human Style)
-- Đời thường, tự nhiên như người trẻ Việt đang tâm sự/rủ rê/bóc phốt trên Threads; kịch tính, lôi cuốn trên Facebook.
-- **Nhịp ngắt câu người thật:** Ngắt dòng theo nhịp nói chuyện, xen kẽ câu ngắn 3–6 chữ đứng riêng 1 dòng, dùng dấu `...`, `....`, `???`, `=))))`, `:)))`.
-- **Từ kéo dài chữ cái cuối & Emoji:** Luôn có các từ cảm thán kéo dài (*haizzz...., ờmmmm..., ủa aloooo?, cayyyy, cứu tuiii, nản nganggg...*) kết hợp 2–4 icon biểu cảm tự nhiên (😭, 💀, 🫠, 👀, 🕵️‍♂️, 😮‍💨).
-- Cấm: "mở khóa bí ẩn", "nâng tầm trải nghiệm", "hành trình khám phá", "đừng bỏ lỡ cơ hội", "tuyệt vời nhất", "đỉnh cao", "siêu phẩm".
+- Đời thường, tự nhiên như người trẻ Việt đang tâm sự/kể chuyện đi chơi với bạn bè trên Threads; không viết theo mô-típ quảng cáo/seeding lộ liễu.
+- **Hạn chế xuống dòng nhiều:** Viết liền mạch thành 1–2 đoạn ngắn gọn cho cả bài, không tách mỗi câu một dòng rời rạc.
+- **Từ kéo dài chữ cái cuối & Emoji:** Dùng dấu `...`, `....`, `=))))`, `:)))`, 1–2 từ kéo dài âm cuối (*haizzz...., ờmmmm..., cayyyy, nản nganggg...*) và **tối đa 0–1 icon duy nhất** cho cả bài.
+- Cấm: "mở khóa bí ẩn", "nâng tầm trải nghiệm", "hành trình khám phá", "đừng bỏ lỡ cơ hội", "tuyệt vời nhất", "đỉnh cao", "siêu phẩm", "nên tụi tui mới làm...".
 
 ## Nguyên tắc nội dung
 - Tỷ lệ 40% TOFU / 40% MOFU / 20% BOFU.

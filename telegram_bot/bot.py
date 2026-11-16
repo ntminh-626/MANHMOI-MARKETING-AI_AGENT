@@ -167,7 +167,7 @@ def build_instructions(prompt: str) -> str:
         "- PHONG CÁCH VIẾT NHƯ NGƯỜI THẬT 100%, TUYỆT ĐỐI KHÔNG SEEDING LỘ LIỄU (BẮT BUỘC):\n"
         "  + Viết như một người trẻ đang kể lại trải nghiệm thật / tâm sự sau buổi đi cà phê với bạn bè, KHÔNG viết theo công thức quảng cáo (Nỗi đau -> Giới thiệu sản phẩm -> Liệt kê tính năng 'luật 5 phút, chơi 2-3 người' -> Kêu gọi).\n"
         "  + Với bài TOFU/MOFU trên Threads: KHÔNG cần nhồi nhét tên thương hiệu hay thông số sản phẩm; hãy kể câu chuyện tự nhiên (ví dụ: ngồi xé túi mù đọc thẻ lời khai cãi nhau với đám bạn...) để người đọc tự tò mò hỏi game gì dưới comment.\n"
-        "  + Ngắt câu, xuống dòng tự nhiên, xen kẽ dòng ngắn, dùng dấu '...' và chỉ 1-2 từ kéo dài chữ cái cuối vừa đủ (haizzz...., ờmmmm..., cayyyy, nản nganggg...).\n"
+        "  + HẠN CHẾ XUỐNG DÒNG / TÁCH DÒNG NHIỀU: Viết liền mạch thành 1 đến tối đa 2 đoạn văn ngắn gọn cho cả bài. Tuyệt đối KHÔNG ngắt mỗi câu một dòng rời rạc. Dùng dấu '...' và 1-2 từ kéo dài chữ cái cuối vừa đủ (haizzz...., ờmmmm..., cayyyy, nản nganggg...).\n"
         "  + GIỚI HẠN ICON: Cả bài CHỈ DÙNG TỐI ĐA 1 EMOJI DUY NHẤT (hoặc chỉ dùng '=))))', ':)))'). Tuyệt đối không rải nhiều icon.\n"
         "- Mỗi bài Threads BẮT BUỘC ngắn gọn dưới 400 ký tự để vừa khít 1 post Threads. Đặt nguyên văn nội dung đăng trong một khối ```threads ... ```; không đưa báo cáo hay ghi chú vào trong khối đó.\n"
         "- Để hệ thống tự động ghi vào content-log.csv, ở cuối câu trả lời (ngay sau khối BÁO CÁO HOÀN THÀNH), hãy xuất thêm một khối ```csv_log ... ``` chứa các dòng mới theo đúng định dạng:\n"
@@ -196,7 +196,7 @@ def shrink_for_threads(text: str) -> str:
     }
     prompt = (
         f"Rút gọn bài đăng Threads tiếng Việt dưới đây từ {len(text)} ký tự xuống dưới 400 ký tự. "
-        "GIỮ NGUYÊN giọng kể chuyện đời thường (không quảng cáo/seeding lộ liễu), dấu '...', từ kéo dài chữ cái cuối vừa phải (haizzz...., ờmmmm...), và TỐI ĐA 1 emoji duy nhất trong cả bài. "
+        "GIỮ NGUYÊN giọng kể chuyện đời thường (không quảng cáo/seeding lộ liễu), viết liền mạch 1-2 đoạn (hạn chế xuống dòng nhiều), dấu '...', từ kéo dài chữ cái cuối vừa phải (haizzz...., ờmmmm...), và TỐI ĐA 1 emoji duy nhất trong cả bài. "
         "Không thêm bất kỳ lời giải thích nào, chỉ trả về đúng nội dung bài đăng:\n\n"
         + text
     )
