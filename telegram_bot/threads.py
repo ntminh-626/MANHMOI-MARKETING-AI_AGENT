@@ -268,6 +268,7 @@ def publish_text(
     specific_image: str | None = None,
     image_count: int | None = None,
     preselected_images: list[Path] | None = None,
+    first_reply: str | None = None,
 ) -> tuple[str, str | None]:
     """Đăng bài lên Threads kèm ảnh từ `assets/ẢNH MEME THREADS`.
     - Nếu truyền `preselected_images` (đã duyệt trước qua /wait trên Telegram), đăng chính xác các ảnh đó.
@@ -322,5 +323,14 @@ def publish_text(
                 raise
         if root_id is None:
             root_id = prev_id
+    # Bình luận mồi đầu tiên (First Self-Reply) để kích hoạt Reply Effect trong 60 phút đầu
+    reply_text = (first_reply or "").strip()
+    if reply_text and root_id:
+        try:
+            time.sleep(5)
+            _publish_single(uid, token, reply_text[:MAX_LEN], reply_to_id=root_id, image_urls=None)
+        except Exception as e:
+            print("Cảnh báo: không đăng được bình luận mồi:", e)
+
     joined_names = ", ".join(used_image_names) if used_image_names else None
     return (root_id or ""), joined_names

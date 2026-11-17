@@ -91,20 +91,30 @@ def load_drafts() -> tuple[dict[str, dict], int]:
             if isinstance(v, str):
                 normalized[k] = {"text": v, "images": []}
             elif isinstance(v, dict):
-                normalized[k] = {"text": v.get("text", ""), "images": v.get("images", [])}
+                normalized[k] = {"text": v.get("text", ""), "images": v.get("images", []), "reply": v.get("reply", "")}
         return normalized, int(data.get("counter", 0))
     except Exception:
         return {}, 0
 
 
-def save_draft_item(post_text: str, image_names: list[str] | None = None) -> int:
+def read_draft_reply(draft_id: int | None) -> str:
+    """Đọc bình luận mồi (First Self-Reply) gắn với bản nháp (gọi TRƯỚC khi pop)."""
+    items, _ = load_drafts()
+    if draft_id is None:
+        if not items:
+            return ""
+        draft_id = int(sorted(items.keys(), key=int)[-1])
+    return (items.get(str(draft_id), {}) or {}).get("reply", "")
+
+
+def save_draft_item(post_text: str, image_names: list[str] | None = None, reply_text: str = "") -> int:
     items, counter = load_drafts()
     counter += 1
     if image_names is None:
         target_cnt = random.choice([2, 3]) if threads.is_pov_post(post_text) else 1
         picked = threads.pick_memes_for_text(post_text, count=target_cnt)
         image_names = [p.name for p in picked]
-    items[str(counter)] = {"text": post_text, "images": image_names}
+    items[str(counter)] = {"text": post_text, "images": image_names, "reply": reply_text}
     if len(items) > 20:
         oldest = sorted(items.keys(), key=int)[:-20]
         for k in oldest:
@@ -256,6 +266,12 @@ def build_instructions(prompt: str) -> str:
         "  + Nhánh A (POV Meme 1 câu - KHI người dùng gõ `/pov` hoặc luân phiên 50% khi gõ `/tofu`): Chỉ viết ĐÚNG 1 CÂU DUY NHẤT (12-28 chữ, không xuống dòng, 0 icon) mở đầu bằng 'Pov: T đang...' hoặc 'Pov: Khi t...'.\n"
         "  + Nhánh B (Tâm sự đời thường 1-2 đoạn): Kể lại câu chuyện đi cà phê với bạn bè / xé túi mù đọc thẻ lời khai liền mạch 1-2 đoạn ngắn, hạn chế xuống dòng, 0-1 icon.\n"
         "- Mỗi bài Threads BẮT BUỘC ngắn gọn dưới 400 ký tự. Đặt nguyên văn nội dung đăng trong một khối ```threads ... ```; không đưa báo cáo hay ghi chú vào trong khối đó.\n"
+        "- QUY TẮC THUẬT TOÁN THREADS 2026 (BẮT BUỘC):\n"
+        "  + KHÔNG gắn link ngoài, KHÔNG dùng danh sách hashtag (tối đa 0-1 topic tag, tốt nhất 0), KHÔNG dùng câu mồi tương tác sáo rỗng ('thả tim nếu...', 'tag bạn bè...'). Lồng từ khóa tự nhiên (túi mù phá án, board game trinh thám, thẻ lời khai) vào câu chữ.\n"
+        "  + MOFU: kết bằng câu hỏi chọn phe A hay B (Binary Debate) từ lời khai có trong phần ĐƯỢC PHÉP DÙNG, không hé lộ manh mối cấm.\n"
+        "  + BOFU: viết như chia sẻ thật, nêu cả 1 nhược điểm vui (Pratfall) và 1 ưu điểm, TUYỆT ĐỐI không gắn link trong bài chính; nhắc 'nhắn mình / link ở bio' nằm ở bình luận mồi.\n"
+        "- BÌNH LUẬN MỒI (First Self-Reply, BẮT BUỘC cho mỗi bài Threads): sau khối ```threads```, thêm một khối ```reply ... ``` (dưới 280 ký tự) là bình luận chủ bài tự thả ngay dưới bài để mồi tranh luận: với POV/TOFU là câu bóc phốt tiếp hoặc hỏi xoáy; với MOFU là câu hỏi chọn phe; với BOFU là thông tin đặt trước (Gói Cơ Bản 150.000đ, Combo 220.000đ, nhắn Fanpage hoặc link ở Bio). Cùng quy tắc giọng người thật, tối đa 1 icon.\n"
+        "- Thêm một khối ```suggest ... ``` gồm đúng 2 dòng, mỗi dòng là 1 câu gợi ý để chủ kênh trả lời bình luận của khách (mở rộng hội thoại bằng câu hỏi nối dài, không cụt lủn).\n"
         "- Để hệ thống tự động ghi vào content-log.csv, ở cuối câu trả lời (ngay sau khối BÁO CÁO HOÀN THÀNH), hãy xuất thêm một khối ```csv_log ... ``` chứa các dòng mới theo đúng định dạng:\n"
         f'{today},TOFU/MOFU/BOFU,Threads/Facebook,"Angle_Used","Opening_Hook"\n'
         "- Luôn kết thúc phần hiển thị bằng khối báo cáo ở Mục 5."
@@ -459,34 +475,47 @@ async def execute_and_publish(
     found = re.findall(r"```threads\s*\n(.*?)```", reply, flags=re.S)
     auto_pub = (not wait_mode) and (os.environ.get("AUTO_PUBLISH_THREADS", "").lower() in ("1", "true", "yes"))
     new_ids = []
-    for post in found:
+    reply_blocks = [r.strip() for r in re.findall(r"```reply\s*\n(.*?)```", reply, flags=re.S)]
+    suggest_blocks = re.findall(r"```suggest\s*\n(.*?)```", reply, flags=re.S)
+    for idx, post in enumerate(found):
         shrunk = await asyncio.to_thread(shrink_for_threads, post.strip())
-        did = save_draft_item(shrunk)
+        first_reply = reply_blocks[idx] if idx < len(reply_blocks) else ""
+        did = save_draft_item(shrunk, reply_text=first_reply)
         new_ids.append(did)
 
     send(chat_id, reply)
     if found:
         if auto_pub and threads.configured():
             for did in new_ids:
+                first_reply = read_draft_reply(did)
                 _, post_text, pre_imgs = pop_draft_item(did)
                 if not post_text:
                     continue
                 try:
                     pid, img_name = await asyncio.to_thread(
-                        threads.publish_text, post_text, preselected_images=pre_imgs
+                        threads.publish_text, post_text, preselected_images=pre_imgs, first_reply=first_reply
                     )
                     img_note = f" kèm ảnh `{img_name}`" if img_name else ""
-                    send(chat_id, f"✅ Đã tự động đăng bài #{did}{img_note} lên Threads (id {pid}).")
+                    reply_note = " + bình luận mồi" if first_reply else ""
+                    send(chat_id, f"✅ Đã tự động đăng bài #{did}{img_note}{reply_note} lên Threads (id {pid}).")
+                    tips = "\n".join(f"• {ln.strip()}" for ln in (suggest_blocks[0].strip().splitlines() if suggest_blocks else []) if ln.strip())
+                    send(
+                        chat_id,
+                        "💡 60 PHÚT VÀNG: vào Threads trả lời các bình luận đầu tiên bằng câu hỏi nối dài để kích hoạt +42% tương tác."
+                        + (f"\nGợi ý trả lời:\n{tips}" if tips else ""),
+                    )
                 except Exception as e:
-                    re_id = save_draft_item(post_text, [p.name for p in pre_imgs])
+                    re_id = save_draft_item(post_text, [p.name for p in pre_imgs], reply_text=first_reply)
                     send(chat_id, f"⚠️ Tự đăng lỗi: {e}. Đã lưu lại nháp #{re_id}, gõ `/dang` để thử lại.")
         else:
             for did in new_ids:
                 _, post_text, pre_imgs = peek_draft_item(did)
+                first_reply = read_draft_reply(did)
                 img_names_str = ", ".join(p.name for p in pre_imgs) or "(không ảnh)"
                 preview_caption = (
                     f"⏸️ XEM TRƯỚC BẢN NHÁP #{did} (Chưa đăng):\n\n"
                     f"{post_text}\n\n"
+                    f"💬 Bình luận mồi: {first_reply or '(không có)'}\n"
                     f"🖼️ Ảnh đính kèm ({len(pre_imgs)}): {img_names_str}\n"
                     f"👉 Gõ `/dang` để đăng ngay, hoặc `/doi` để đổi ảnh Meme khác!"
                 )
@@ -528,7 +557,8 @@ async def scheduler_loop(lock: asyncio.Lock) -> None:
                     last_runs[hm_str] = today_str
                     sched["last_daily_runs"] = last_runs
                     save_schedule(sched)
-                    await handle_command(target_chat, "/auto", lock, from_scheduler=f"⏰ LỊCH HÀNG NGÀY ({hm_str})")
+                    slot = "/auto noon" if int(hm_str[:2]) < 17 else "/auto night"
+                    await handle_command(target_chat, slot, lock, from_scheduler=f"⏰ LỊCH HÀNG NGÀY ({hm_str})")
         except Exception as e:
             print("scheduler error:", e)
 
@@ -594,6 +624,7 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
             return
         m = re.match(r"^/dang\s+(\d+)$", t_low)
         target_id = int(m.group(1)) if m else None
+        first_reply = read_draft_reply(target_id)
         did, post_text, pre_imgs = pop_draft_item(target_id)
         if not post_text:
             items, _ = load_drafts()
@@ -603,12 +634,13 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
         tg("sendChatAction", chat_id=chat_id, action="typing")
         try:
             pid, img_name = await asyncio.to_thread(
-                threads.publish_text, post_text, preselected_images=pre_imgs
+                threads.publish_text, post_text, preselected_images=pre_imgs, first_reply=first_reply
             )
             img_note = f" kèm ảnh `{img_name}`" if img_name else ""
-            send(chat_id, f"✅ Đã duyệt đăng bản nháp #{did}{img_note} lên Threads (id {pid}).")
+            reply_note = " + bình luận mồi" if first_reply else ""
+            send(chat_id, f"✅ Đã duyệt đăng bản nháp #{did}{img_note}{reply_note} lên Threads (id {pid}).\n💡 60 phút vàng: vào trả lời bình luận đầu tiên bằng câu hỏi nối dài để tăng reach.")
         except Exception as e:
-            re_id = save_draft_item(post_text, [p.name for p in pre_imgs])
+            re_id = save_draft_item(post_text, [p.name for p in pre_imgs], reply_text=first_reply)
             send(chat_id, f"⚠️ Đăng lỗi: {e}. Đã giữ lại bản nháp #{re_id}.")
         return
 
@@ -677,8 +709,15 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
     core_cmd = re.sub(r"(?:^|\s)/wait(?:\s|$)", " ", t_clean, flags=re.I).strip()
     core_low = core_cmd.lower()
 
-    if core_low == "/auto":
+    if core_low in ("/auto", "/auto noon", "/auto night"):
         tier, counts = pick_next_funnel_tier()
+        total = sum(counts.values()) or 1
+        targets = {"TOFU": 0.40, "MOFU": 0.40, "BOFU": 0.20}
+        if core_low == "/auto noon":
+            tier = "TOFU"  # 12:00 trưa: giờ nghỉ trưa công sở -> bài nhẹ, giải trí
+        elif core_low == "/auto night":
+            # 20:00 tối: Gen Z dừng đọc lâu nhất -> MOFU hoặc BOFU, tầng nào đang thiếu hơn
+            tier = max(("MOFU", "BOFU"), key=lambda t: targets[t] - counts[t] / total)
         if tier == "TOFU" and (counts["TOFU"] % 2 == 0):
             expanded = "/tofu 1 Threads theo nhánh POV Meme 1 câu cực ngắn mở đầu bằng 'Pov: T đang...'"
         else:

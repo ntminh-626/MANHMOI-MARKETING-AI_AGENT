@@ -137,6 +137,16 @@ Recognize and execute these exact user shortcuts (works via Antigravity chat or 
   >
   > Nếu đang cầm hai lá bài lời khai này trên tay, bạn sẽ chọn chất vấn ai trước để tìm ra kẽ hở?
 
+### 4.3. Threads Algorithm Rules (theo báo cáo phân tích nền tảng 2025–2026)
+- **Reply Effect:** Replies chiếm gần 50% lượt xem trên Threads; chủ kênh trả lời bình luận giúp tăng khoảng +42% tương tác. Mỗi bài Threads phải kèm 1 **bình luận mồi (First Self-Reply)** do chủ kênh tự thả ngay dưới bài, và 2 câu gợi ý để trả lời khách trong 60 phút đầu.
+- **Zero-Click:** Không gắn link ngoài trong bài chính (bài có link chỉ đạt ER 2,34%). Thông tin đặt trước nằm ở bình luận mồi hoặc Bio.
+- **Không nhồi hashtag:** tối đa 0–1 topic tag; lồng từ khóa tự nhiên (túi mù phá án, board game trinh thám, thẻ lời khai).
+- **Cấm Engagement Bait:** không dùng "thả tim nếu...", "tag bạn bè vào đây...". Dùng câu hỏi mở thật sự.
+- **MOFU = Binary Debate:** kết bằng câu hỏi chọn phe A hay B từ lời khai công khai.
+- **BOFU = Review thật:** nêu cả 1 nhược điểm vui và 1 ưu điểm, không giọng quảng cáo một chiều.
+- **Media thắng chữ thuần:** ảnh/carousel đạt ER cao hơn khoảng 63% so với chữ thuần.
+- **Giờ vàng Việt Nam:** 12:00 trưa (nhẹ, giải trí: TOFU/POV) và 20:00 tối (suy luận/chuyển đổi: MOFU/BOFU); tốt nhất Thứ Ba–Thứ Năm.
+
 ---
 
 ## 5. STANDARD OUTPUT REPORT FORMAT
