@@ -20,6 +20,14 @@ import requests
 
 import threads
 
+TZ_VN = datetime.timezone(datetime.timedelta(hours=7))
+
+
+def vn_now() -> datetime.datetime:
+    """Giờ Việt Nam (naive) - chạy trên GitHub (UTC) vẫn đúng giờ 12:00/20:00 theo VN."""
+    return datetime.datetime.now(TZ_VN).replace(tzinfo=None)
+
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 SCHEDULE_FILE = HERE / "schedule.json"
@@ -340,7 +348,7 @@ def build_instructions(prompt: str) -> str:
     ctx = ctx_path.read_text(encoding="utf-8") if ctx_path.exists() else ""
     skills_txt = load_skills_text(select_skills_for_prompt(prompt))
     recent_log = read_recent_log()
-    today = datetime.date.today().isoformat()
+    today = vn_now().date().isoformat()
     return (
         rule
         + "\n\n---\n# PRODUCT CONTEXT\n" + ctx
@@ -651,7 +659,7 @@ async def scheduler_loop(lock: asyncio.Lock) -> None:
                 continue
             target_chat = next(iter(ALLOWED))
             sched = load_schedule()
-            now = datetime.datetime.now()
+            now = vn_now()
             today_str = now.strftime("%Y-%m-%d")
             hm_str = now.strftime("%H:%M")
             now_full = now.strftime("%Y-%m-%d %H:%M")
@@ -682,6 +690,44 @@ async def scheduler_loop(lock: asyncio.Lock) -> None:
                     await handle_command(target_chat, slot, lock, from_scheduler=f"⏰ LỊCH HÀNG NGÀY ({hm_str})")
         except Exception as e:
             print("scheduler error:", e)
+
+
+async def run_scheduler_once(lock: asyncio.Lock, late_minutes: int = 90) -> None:
+    """Chạy MỘT lần kiểm tra lịch (dùng cho chế độ Cloud one-shot): đăng bài hẹn đến hạn, lịch hàng ngày trong khung trễ cho phép."""
+    if not ALLOWED:
+        return
+    target_chat = next(iter(ALLOWED))
+    sched = load_schedule()
+    now = vn_now()
+    today_str = now.strftime("%Y-%m-%d")
+    now_full = now.strftime("%Y-%m-%d %H:%M")
+
+    remaining, due_items = [], []
+    for item in sched.get("one_off", []):
+        (due_items if item.get("run_at", "") <= now_full else remaining).append(item)
+    if due_items:
+        sched["one_off"] = remaining
+        save_schedule(sched)
+        for item in due_items:
+            await handle_command(
+                item.get("chat_id", target_chat), item.get("cmd", "/auto"), lock,
+                from_scheduler=f"⏰ ĐẾN GIỜ HẸN ({item.get('run_at')})",
+            )
+
+    if sched.get("enabled", True):
+        last_runs = sched.get("last_daily_runs", {})
+        for hm in sched.get("daily_times", []):
+            try:
+                slot_dt = datetime.datetime.strptime(f"{today_str} {hm}", "%Y-%m-%d %H:%M")
+            except ValueError:
+                continue
+            late = (now - slot_dt).total_seconds() / 60
+            if 0 <= late <= late_minutes and last_runs.get(hm) != today_str:
+                last_runs[hm] = today_str
+                sched["last_daily_runs"] = last_runs
+                save_schedule(sched)
+                slot = "/auto noon" if int(hm[:2]) < 17 else "/auto night"
+                await handle_command(target_chat, slot, lock, from_scheduler=f"⏰ LỊCH HÀNG NGÀY ({hm})")
 
 
 async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_scheduler: str = "") -> None:
@@ -814,7 +860,7 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
             send(chat_id, "Dùng: `/hen HH:MM [lệnh]` (Vd: `/hen 21:30 /pov`)\nHoặc xóa lịch: `/hen xoa`")
             return
         date_part, hh, mm, cmd_part = m.groups()
-        now = datetime.datetime.now()
+        now = vn_now()
         target_time = datetime.time(int(hh), int(mm))
         target_date = datetime.date.fromisoformat(date_part) if date_part else now.date()
         if not date_part and datetime.datetime.combine(target_date, target_time) <= now:
