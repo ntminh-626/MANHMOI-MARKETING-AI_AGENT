@@ -1,6 +1,6 @@
 """Đăng bài (Text + 1 ảnh hoặc Carousel 2-3 ảnh từ assets/ẢNH MEME THREADS) lên Threads qua Threads API (graph.threads.net).
 
-- Với bài POV (mở đầu bằng `Pov:` / `POV:` hoặc bài ngắn 1 câu): tự động chọn 2-3 ảnh liên quan tới nội dung và đăng dạng Carousel trượt ngang (giống hệt Viral Thread mẫu).
+- Với bài POV (mở đầu bằng `Pov:` / `POV:` hoặc bài ngắn 1 câu): tự động chọn 1-3 ảnh (phân bổ 40/40/20) liên quan tới nội dung và đăng dạng Carousel trượt ngang (giống hệt Viral Thread mẫu).
 - Với bài thường: đính kèm 1 ảnh meme phù hợp (hoặc 2-3 ảnh nếu yêu cầu).
 - Hỗ trợ tự động tách chuỗi bài (thread reply) nếu bài vượt quá 500 ký tự.
 """
@@ -19,6 +19,93 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 MEME_DIR = ROOT / "assets" / "ẢNH MEME THREADS"
 IMAGE_STATE_FILE = HERE / "used_images.json"
+VIDEO_DIR = ROOT / "assets" / "VIDEO MEME THREADS"
+VIDEO_EXTS = {".mp4", ".mov"}
+
+
+def pick_topic_tag(text: str) -> str | None:
+    """Chọn 1 topic tag (Threads chỉ cho 1 tag/bài) khớp nội dung nhất; ưu tiên tag đang hot, tránh lặp tag vừa dùng."""
+    if os.environ.get("THREADS_TOPIC_TAG", "true").lower() not in ("1", "true", "yes"):
+        return None
+    try:
+        cfg = json.loads((HERE / "topics.json").read_text(encoding="utf-8-sig"))
+    except Exception:
+        return None
+    pool = cfg.get("topic_tags", [])
+    hot = {h.lower() for h in cfg.get("hot_tags", [])}
+    t = text.lower()
+    state_f = HERE / "topic_state.json"
+    try:
+        state = json.loads(state_f.read_text(encoding="utf-8"))
+    except Exception:
+        state = {}
+    recent = state.get("used_tags", [])[-4:]
+    scored = []
+    for item in pool:
+        tag = str(item.get("tag", "")).strip()
+        if not tag or "." in tag or "&" in tag:
+            continue
+        sc = sum(1 for k in item.get("keywords", []) if k.lower() in t)
+        if sc <= 0:
+            continue
+        if tag.lower() in hot:
+            sc += 1
+        if tag in recent:
+            sc -= 2
+        scored.append((sc, random.random(), tag))
+    if not scored:
+        fallback = [h for h in cfg.get("hot_tags", []) if h not in recent]
+        tag = random.choice(fallback) if fallback else None
+    else:
+        scored.sort(reverse=True)
+        tag = scored[0][2]
+    if tag:
+        try:
+            state["used_tags"] = (state.get("used_tags", []) + [tag])[-12:]
+            state_f.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+    return tag[:50] if tag else None
+
+
+def is_video_name(name: str) -> bool:
+    return Path(str(name).split("?")[0]).suffix.lower() in VIDEO_EXTS
+
+
+def list_meme_videos() -> list[Path]:
+    """Lấy danh sách video (.mp4/.mov) trong assets/VIDEO MEME THREADS."""
+    if not VIDEO_DIR.exists():
+        return []
+    return [p for p in sorted(VIDEO_DIR.rglob("*")) if p.is_file() and p.suffix.lower() in VIDEO_EXTS]
+
+
+def list_all_media() -> list[Path]:
+    return list_meme_images() + list_meme_videos()
+
+
+def pick_video_for_text(text: str = "", avoid: list[str] | None = None) -> Path | None:
+    """Chọn ngẫu nhiên 1 video, tránh video vừa dùng / video đang nằm trong nháp (avoid)."""
+    vids = list_meme_videos()
+    if not vids:
+        return None
+    used: list[str] = []
+    if IMAGE_STATE_FILE.exists():
+        try:
+            used = json.loads(IMAGE_STATE_FILE.read_text(encoding="utf-8")).get("used_videos", [])
+        except Exception:
+            used = []
+    blocked = set(avoid or []) | set(used[-max(len(vids) - 1, 0):][-3:])
+    pool = [v for v in vids if v.name not in blocked] or vids
+    chosen = random.choice(pool)
+    try:
+        data = {}
+        if IMAGE_STATE_FILE.exists():
+            data = json.loads(IMAGE_STATE_FILE.read_text(encoding="utf-8"))
+        data["used_videos"] = (used + [chosen.name])[-10:]
+        IMAGE_STATE_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+    return chosen
 
 
 def configured() -> bool:
@@ -34,6 +121,11 @@ def list_meme_images() -> list[Path]:
     if not files and (ROOT / "assets").exists():
         files = [p for p in sorted((ROOT / "assets").rglob("*")) if p.is_file() and p.suffix.lower() in exts]
     return files
+
+
+def pick_pov_image_count() -> int:
+    """Phân bổ số ảnh cho bài POV: 1 ảnh 40% / 2 ảnh 40% / 3 ảnh 20%."""
+    return random.choices([1, 2, 3], weights=[40, 40, 20], k=1)[0]
 
 
 def is_pov_post(text: str) -> bool:
@@ -94,7 +186,13 @@ def pick_memes_for_text(text: str, count: int = 1, specific_name: str | None = N
     for c in chosen:
         used.append(c.name)
     try:
-        IMAGE_STATE_FILE.write_text(json.dumps({"used": used[-25:]}, ensure_ascii=False, indent=2), encoding="utf-8")
+        _st = {}
+        try:
+            _st = json.loads(IMAGE_STATE_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            _st = {}
+        _st["used"] = used[-25:]
+        IMAGE_STATE_FILE.write_text(json.dumps(_st, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:
         pass
     return chosen
@@ -107,8 +205,23 @@ def pick_meme_for_text(text: str, specific_name: str | None = None) -> Path | No
 
 def upload_public_image_url(image_path: Path) -> str:
     """Tải file ảnh local lên host tạm thời để lấy direct HTTPS URL cho Threads Graph API."""
-    mime = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
+    ext = image_path.suffix.lower()
+    mime = {".png": "image/png", ".mp4": "video/mp4", ".mov": "video/quicktime", ".webp": "image/webp"}.get(ext, "image/jpeg")
+    tmo = 180 if ext in VIDEO_EXTS else 30
     headers = {"User-Agent": "Mozilla/5.0"}
+
+    # 0. Chạy trên GitHub Actions (repo public): dùng thẳng link raw.githubusercontent.com (miễn phí, ổn định)
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    if repo:
+        try:
+            from urllib.parse import quote
+            rel = image_path.resolve().relative_to(Path(__file__).resolve().parent.parent).as_posix()
+            branch = os.environ.get("GITHUB_REF_NAME", "main")
+            url = f"https://raw.githubusercontent.com/{repo}/{branch}/{quote(rel)}"
+            if requests.head(url, headers=headers, timeout=15, allow_redirects=True).status_code == 200:
+                return url
+        except Exception:
+            pass
 
     # 1. Thử uguu.se (direct image link)
     try:
@@ -117,7 +230,7 @@ def upload_public_image_url(image_path: Path) -> str:
                 "https://uguu.se/upload",
                 headers=headers,
                 files={"files[]": (image_path.name, f, mime)},
-                timeout=30,
+                timeout=tmo,
             )
         data = r.json()
         if data.get("success") and data.get("files"):
@@ -132,7 +245,7 @@ def upload_public_image_url(image_path: Path) -> str:
                 "https://tmpfiles.org/api/v1/upload",
                 headers=headers,
                 files={"file": (image_path.name, f, mime)},
-                timeout=30,
+                timeout=tmo,
             )
         data = r.json()
         url = data.get("data", {}).get("url", "")
@@ -142,6 +255,9 @@ def upload_public_image_url(image_path: Path) -> str:
         raise RuntimeError(f"Không thể tạo public URL cho ảnh {image_path.name}: {e}")
 
     raise RuntimeError(f"Không thể upload ảnh {image_path.name}")
+
+
+upload_public_media_url = upload_public_image_url
 
 
 def split_into_chunks(text: str, limit: int = MAX_LEN) -> list[str]:
@@ -179,87 +295,102 @@ def split_into_chunks(text: str, limit: int = MAX_LEN) -> list[str]:
     return chunks
 
 
+def _is_video_url(u: str) -> bool:
+    return Path(u.split("?")[0]).suffix.lower() in VIDEO_EXTS
+
+
+def _wait_container_ready(token: str, container_id: str, max_wait: int = 300) -> None:
+    """Video cần Threads xử lý xong (status FINISHED) trước khi publish."""
+    start = time.time()
+    last = None
+    while time.time() - start < max_wait:
+        try:
+            r = requests.get(
+                f"{BASE}/{container_id}",
+                params={"fields": "status,error_message", "access_token": token},
+                timeout=30,
+            ).json()
+        except Exception as e:
+            last = str(e)
+            time.sleep(5)
+            continue
+        st = r.get("status")
+        if st in ("FINISHED", "PUBLISHED"):
+            return
+        if st in ("ERROR", "EXPIRED"):
+            raise RuntimeError(f"Threads xử lý media lỗi: {r}")
+        last = r
+        time.sleep(6)
+    raise RuntimeError(f"Quá thời gian chờ Threads xử lý video: {last}")
+
+
+def _create_container(uid: str, token: str, payload: dict, what: str) -> str:
+    payload = dict(payload, access_token=token)
+    d = requests.post(f"{BASE}/{uid}/threads", data=payload, timeout=60).json()
+    if "id" not in d:
+        raise RuntimeError(f"Tạo {what} container lỗi: {d}")
+    return d["id"]
+
+
+def _publish_container(uid: str, token: str, creation_id: str, what: str) -> str:
+    pub = requests.post(
+        f"{BASE}/{uid}/threads_publish",
+        data={"creation_id": creation_id, "access_token": token},
+        timeout=60,
+    ).json()
+    if "id" not in pub:
+        raise RuntimeError(f"Publish {what} lỗi: {pub}")
+    return pub["id"]
+
+
 def _publish_single(
     uid: str,
     token: str,
     text: str,
     reply_to_id: str | None = None,
     image_urls: list[str] | None = None,
+    topic_tag: str | None = None,
 ) -> str:
+    """Đăng 1 bài: Text / 1 ảnh / 1 video / Carousel 2+ media (ảnh và video trộn được)."""
     urls = [u for u in (image_urls or []) if u]
 
     if len(urls) >= 2:
-        # Đăng dạng CAROUSEL (2-3 ảnh trượt ngang trên cùng 1 bài Threads)
         child_ids: list[str] = []
         for u in urls:
-            r_item = requests.post(
-                f"{BASE}/{uid}/threads",
-                data={
-                    "media_type": "IMAGE",
-                    "image_url": u,
-                    "is_carousel_item": "true",
-                    "access_token": token,
-                },
-                timeout=30,
-            )
-            d_item = r_item.json()
-            if "id" in d_item:
-                child_ids.append(d_item["id"])
-        if len(child_ids) >= 2:
-            time.sleep(4)
-            payload = {
-                "media_type": "CAROUSEL",
-                "children": ",".join(child_ids),
-                "text": text,
-                "access_token": token,
-            }
-            if reply_to_id:
-                payload["reply_to_id"] = reply_to_id
-            r_car = requests.post(f"{BASE}/{uid}/threads", data=payload, timeout=30)
-            d_car = r_car.json()
-            if "id" not in d_car:
-                raise RuntimeError(f"Tạo CAROUSEL container lỗi: {d_car}")
-            time.sleep(5)
-            r_pub = requests.post(
-                f"{BASE}/{uid}/threads_publish",
-                data={"creation_id": d_car["id"], "access_token": token},
-                timeout=30,
-            )
-            pub = r_pub.json()
-            if "id" not in pub:
-                raise RuntimeError(f"Publish CAROUSEL lỗi: {pub}")
-            return pub["id"]
+            vid = _is_video_url(u)
+            payload = {"media_type": "VIDEO" if vid else "IMAGE", "is_carousel_item": "true"}
+            payload["video_url" if vid else "image_url"] = u
+            cid = _create_container(uid, token, payload, "carousel item")
+            if vid:
+                _wait_container_ready(token, cid)
+            child_ids.append(cid)
+        time.sleep(4)
+        payload = {"media_type": "CAROUSEL", "children": ",".join(child_ids), "text": text}
+        if topic_tag:
+            payload["topic_tag"] = topic_tag
+        if reply_to_id:
+            payload["reply_to_id"] = reply_to_id
+        car = _create_container(uid, token, payload, "CAROUSEL")
+        time.sleep(5)
+        return _publish_container(uid, token, car, "CAROUSEL")
 
-    # Đăng 1 ảnh hoặc chỉ Text
-    if len(urls) == 1:
-        payload = {
-            "media_type": "IMAGE",
-            "image_url": urls[0],
-            "text": text,
-            "access_token": token,
-        }
+    if len(urls) == 1 and _is_video_url(urls[0]):
+        payload = {"media_type": "VIDEO", "video_url": urls[0], "text": text}
+    elif len(urls) == 1:
+        payload = {"media_type": "IMAGE", "image_url": urls[0], "text": text}
     else:
-        payload = {"media_type": "TEXT", "text": text, "access_token": token}
-
+        payload = {"media_type": "TEXT", "text": text}
     if reply_to_id:
         payload["reply_to_id"] = reply_to_id
+    if topic_tag:
+        payload["topic_tag"] = topic_tag
 
-    r = requests.post(f"{BASE}/{uid}/threads", data=payload, timeout=30)
-    data = r.json()
-    if "id" not in data:
-        raise RuntimeError(f"Tạo container lỗi: {data}")
-
-    time.sleep(5 if urls else 3)
-
-    r = requests.post(
-        f"{BASE}/{uid}/threads_publish",
-        data={"creation_id": data["id"], "access_token": token},
-        timeout=30,
-    )
-    pub = r.json()
-    if "id" not in pub:
-        raise RuntimeError(f"Publish lỗi: {pub}")
-    return pub["id"]
+    cid = _create_container(uid, token, payload, payload["media_type"])
+    if payload["media_type"] == "VIDEO":
+        _wait_container_ready(token, cid)
+    else:
+        time.sleep(5 if urls else 3)
+    return _publish_container(uid, token, cid, payload["media_type"])
 
 
 def publish_text(
@@ -269,10 +400,11 @@ def publish_text(
     image_count: int | None = None,
     preselected_images: list[Path] | None = None,
     first_reply: str | None = None,
+    topic_tag: str | None = None,
 ) -> tuple[str, str | None]:
     """Đăng bài lên Threads kèm ảnh từ `assets/ẢNH MEME THREADS`.
     - Nếu truyền `preselected_images` (đã duyệt trước qua /wait trên Telegram), đăng chính xác các ảnh đó.
-    - Nếu là bài POV (hoặc image_count >= 2): tự động chọn 2-3 ảnh liên quan và đăng dạng Carousel.
+    - Nếu là bài POV (hoặc image_count >= 2): tự động chọn 1-3 ảnh (phân bổ 40/40/20) liên quan và đăng dạng Carousel.
     Trả về (post_id, chuỗi_tên_ảnh_đã_dùng).
     """
     text = text.strip()
@@ -288,7 +420,7 @@ def publish_text(
             img_paths = [p for p in preselected_images if p.exists()]
         else:
             if image_count is None:
-                target_count = random.choice([2, 3]) if is_pov_post(text) else 1
+                target_count = pick_pov_image_count() if is_pov_post(text) else 1
             else:
                 target_count = image_count
             img_paths = pick_memes_for_text(text, count=target_count, specific_name=specific_image)
@@ -301,26 +433,38 @@ def publish_text(
             except Exception as e:
                 print("Cảnh báo upload ảnh meme:", e)
 
+    if topic_tag is None:
+        topic_tag = pick_topic_tag(text)
     chunks = split_into_chunks(text, MAX_LEN)
     root_id = None
     prev_id = None
     for idx, chunk in enumerate(chunks):
         if idx > 0:
             time.sleep(3)
-        try:
-            prev_id = _publish_single(
-                uid,
-                token,
-                chunk,
-                reply_to_id=prev_id,
-                image_urls=image_urls if idx == 0 else None,
-            )
-        except Exception:
-            if idx == 0 and image_urls:
-                used_image_names = []
-                prev_id = _publish_single(uid, token, chunk, reply_to_id=prev_id, image_urls=None)
-            else:
-                raise
+        if idx == 0:
+            attempts = [(image_urls, topic_tag)]
+            if topic_tag:
+                attempts.append((image_urls, None))
+            if image_urls:
+                attempts.append((None, None))
+        else:
+            attempts = [(None, None)]
+        last_err: Exception | None = None
+        for k, (urls_try, tag_try) in enumerate(attempts):
+            try:
+                prev_id = _publish_single(
+                    uid, token, chunk, reply_to_id=prev_id, image_urls=urls_try, topic_tag=tag_try
+                )
+                if idx == 0 and image_urls and not urls_try:
+                    used_image_names = []
+                if idx == 0 and topic_tag and not tag_try:
+                    topic_tag = None
+                last_err = None
+                break
+            except Exception as e:
+                last_err = e
+        if last_err is not None:
+            raise last_err
         if root_id is None:
             root_id = prev_id
     # Bình luận mồi đầu tiên (First Self-Reply) để kích hoạt Reply Effect trong 60 phút đầu

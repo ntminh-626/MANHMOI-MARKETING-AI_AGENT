@@ -1,0 +1,253 @@
+{
+  "_ghi_chu": "File này sửa trực tiếp được trên GitHub (điện thoại). Thêm/bớt dòng tuỳ ý, bot tự xoay vòng và tránh chủ đề vừa dùng.",
+  "pov_topics": [
+    "nhìn số dư tài khoản cuối tháng sau khi tự thưởng liên tục",
+    "ngồi cà phê với nhóm bạn mà cả bàn cắm mặt điện thoại suốt 2 tiếng",
+    "bảo ngủ sớm nhưng 2h sáng vẫn đang lướt điện thoại",
+    "nhắn tin cho crush bị seen không rep",
+    "deadline sáng mai mà giờ mới mở file ra làm",
+    "đứa bạn hứa 'tới liền' nhưng 1 tiếng sau mới báo vừa thức dậy",
+    "cả nhóm chat 'đi ăn gì cũng được' rồi cãi nhau 30 phút chọn quán",
+    "xin nghỉ 1 ngày mà sếp nhắn hỏi công việc cả buổi",
+    "mở app giao đồ ăn nói chỉ xem thôi rồi chốt đơn 300k",
+    "đứa bạn kể chuyện bí mật xong dặn 'đừng nói ai' rồi cả nhóm đều biết",
+    "đang nhịn ăn kiêng thì bạn rủ ăn buffet",
+    "tính đi tập gym nhưng nằm trên giường lên kế hoạch cả buổi",
+    "nhớ ra mình chưa gửi email quan trọng đúng lúc đã tắt máy",
+    "thấy tin nhắn nhóm 99+ mà chẳng có gì quan trọng",
+    "đứa bạn thề nói thật nhưng mắt đảo liên tục",
+    "mua đồ giảm giá để tiết kiệm rồi tổng bill còn cao hơn lúc đầu",
+    "cả nhóm họp mặt cuối năm mà đứa nào cũng bận, chốt ngày mãi không xong",
+    "bị hỏi 'sao dạo này không thấy đi chơi' đúng lúc ví đang rỗng",
+    "chơi game nhóm mà đứa thua đổ lỗi cho mạng lag",
+    "bạn thân hỏi 'tui béo lên hả' và mình biết câu trả lời đúng là gì",
+    "mở tủ lạnh lúc nửa đêm nhìn chằm chằm không biết tìm gì",
+    "đứa bạn kể chuyện 'tuần trước' nhưng mỗi lần kể lại một khác",
+    "đang họp online thì quên tắt mic",
+    "nhìn lịch cuối tuần kín hết rồi mới nhớ chưa nghỉ ngơi tuần nào",
+    "hứa chỉ lướt 5 phút mà ngẩng lên đã sáng bảnh"
+  ],
+  "pov_openers": [
+    "Pov: T đang ...",
+    "Pov: Khi t ...",
+    "Pov: Cái cảnh t ...",
+    "Pov: Lúc mn ...",
+    "Pov: Đứa bạn ...",
+    "Pov: Cả nhóm ...",
+    "Pov: T mà ...",
+    "Pov: Mới đó mà t ..."
+  ],
+  "story_topics": [
+    "tụ tập cà phê với đám bạn cũ lâu ngày gặp lại",
+    "tối thứ Sáu xả stress sau tuần làm việc căng thẳng",
+    "cuộc hẹn nhóm bạn mà ai cũng ôm điện thoại, rồi có một trò khiến cả bàn bỏ máy xuống",
+    "ngày mưa ở nhà với 2-3 đứa bạn thân không biết làm gì",
+    "sinh nhật bạn tổ chức đơn giản ở nhà thay vì đi quán",
+    "đồng nghiệp rủ nhau ngồi lại sau giờ tan làm",
+    "cuối tuần cả nhà/phòng trọ rủ nhau chơi trò gì đó cho vui",
+    "đi du lịch nhóm, tối về phòng không ai muốn ngủ sớm",
+    "bạn thân nói dối chuyện nhỏ và cả đám phát hiện ra",
+    "lần đầu thử một trò chơi nhóm mới với đứa bạn khó chiều nhất"
+  ],
+  "mofu_angles": [
+    "binary debate: tin lời khai của Lê hay của Mai",
+    "cuộc gọi im lặng lúc 23:45 và hai người nhận định khác nhau",
+    "hiện trường bãi rác 05:15 với thi thể cháy và mùi cồn cháy, bạn nghĩ gì đầu tiên",
+    "không có dấu vết giằng co: nạn nhân quen hung thủ hay bị bất ngờ",
+    "thời điểm tử vong 01:00-01:30, ai có ngoại phạm đáng ngờ nhất theo lời khai bề mặt",
+    "mỗi người cầm một thẻ lời khai khác nhau và cãi nhau ai nói thật",
+    "chỉ 3 mảnh manh mối cho 8 nhân vật: bạn sẽ ưu tiên đối chiếu mảnh nào",
+    "động cơ bề mặt của 4 nghi phạm: ai có lý do rõ ràng nhất",
+    "Bad Ending vì chỉ nhầm đúng một người: bạn từng như vậy chưa",
+    "góc nhìn của nhân chứng bị bóp méo bởi định kiến"
+  ],
+  "bofu_angles": [
+    "review thật: một nhược điểm vui và một ưu điểm của hộp cơ bản",
+    "chơi được 2-3 người hoặc 1 mình, không cần gom nhóm đông",
+    "luật dạng infographic, vào cuộc trong 5 phút",
+    "cam kết công bằng: không cần mua thẻ hiếm vẫn giải được án",
+    "mốc 100 đơn đặt trước đầu tiên và vì sao chỉ mở có hạn",
+    "so sánh Gói Cơ Bản 150k và Combo Săn Lùng Sự Thật 220k tiết kiệm 10%",
+    "mỗi pack nhân vật mới mở ra một góc nhìn mới, chơi lại không chán",
+    "quà tặng cho đứa bạn thích suy luận mà khó chiều"
+  ],
+  "topic_tags_ghi_chu": "Threads API chỉ cho 1 topic tag/bài. Bot chọn tag khớp nhất với nội dung (theo keywords), ưu tiên tag trong hot_tags. Sửa hot_tags theo xu hướng đang lên trên Threads (mục Tìm kiếm/Trending). Không dùng dấu chấm hoặc &.",
+  "topic_tags": [
+    {
+      "tag": "board game",
+      "keywords": [
+        "board game",
+        "boardgame",
+        "thẻ bài",
+        "ván",
+        "chơi"
+      ]
+    },
+    {
+      "tag": "trò chơi nhóm",
+      "keywords": [
+        "cả nhóm",
+        "cả đám",
+        "tụ tập",
+        "chơi",
+        "bàn",
+        "hội bạn",
+        "nhóm"
+      ]
+    },
+    {
+      "tag": "game suy luận",
+      "keywords": [
+        "suy luận",
+        "đoán",
+        "hung thủ",
+        "lời khai",
+        "phá án",
+        "logic",
+        "check var"
+      ]
+    },
+    {
+      "tag": "trinh thám",
+      "keywords": [
+        "trinh thám",
+        "vụ án",
+        "hồ sơ",
+        "manh mối",
+        "thám tử",
+        "nạn nhân",
+        "nghi phạm"
+      ]
+    },
+    {
+      "tag": "blind box",
+      "keywords": [
+        "túi mù",
+        "blind box",
+        "xé túi",
+        "mở túi"
+      ]
+    },
+    {
+      "tag": "tâm sự",
+      "keywords": [
+        "haizzz",
+        "tâm sự",
+        "kể",
+        "tối qua",
+        "hôm qua",
+        "nản",
+        "cay"
+      ]
+    },
+    {
+      "tag": "đời sống",
+      "keywords": [
+        "đời",
+        "cuộc sống",
+        "mỗi ngày",
+        "hằng ngày",
+        "cuối tuần",
+        "thứ"
+      ]
+    },
+    {
+      "tag": "dân văn phòng",
+      "keywords": [
+        "deadline",
+        "sếp",
+        "họp",
+        "đi làm",
+        "công việc",
+        "email",
+        "văn phòng",
+        "tan làm",
+        "lương"
+      ]
+    },
+    {
+      "tag": "genz",
+      "keywords": [
+        "pov",
+        "t đang",
+        "mn",
+        "đứa bạn",
+        "crush",
+        "seen",
+        "lướt"
+      ]
+    },
+    {
+      "tag": "cà phê",
+      "keywords": [
+        "cà phê",
+        "quán",
+        "cafe"
+      ]
+    },
+    {
+      "tag": "meme",
+      "keywords": [
+        "pov",
+        "meme",
+        "khi t",
+        "cái cảnh"
+      ]
+    },
+    {
+      "tag": "xả stress",
+      "keywords": [
+        "stress",
+        "áp lực",
+        "mệt",
+        "xả",
+        "giải tỏa",
+        "sau giờ làm"
+      ]
+    },
+    {
+      "tag": "hội bạn thân",
+      "keywords": [
+        "bạn thân",
+        "đứa bạn",
+        "bạn bè",
+        "hội bạn"
+      ]
+    },
+    {
+      "tag": "chi tiêu",
+      "keywords": [
+        "tiền",
+        "ví",
+        "tự thưởng",
+        "bill",
+        "giảm giá",
+        "đơn",
+        "lương",
+        "tài khoản"
+      ]
+    },
+    {
+      "tag": "đặt trước",
+      "keywords": [
+        "đặt trước",
+        "pre-order",
+        "150",
+        "220",
+        "combo",
+        "100 đơn",
+        "100 hộp"
+      ]
+    }
+  ],
+  "hot_tags": [
+    "genz",
+    "meme",
+    "tâm sự",
+    "đời sống",
+    "board game",
+    "hội bạn thân",
+    "dân văn phòng",
+    "xả stress"
+  ]
+}

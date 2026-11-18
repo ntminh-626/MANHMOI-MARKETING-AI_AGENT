@@ -107,11 +107,15 @@ def read_draft_reply(draft_id: int | None) -> str:
     return (items.get(str(draft_id), {}) or {}).get("reply", "")
 
 
-def save_draft_item(post_text: str, image_names: list[str] | None = None, reply_text: str = "") -> int:
+def save_draft_item(post_text: str, image_names: list[str] | None = None, reply_text: str = "", use_video: bool = False) -> int:
     items, counter = load_drafts()
     counter += 1
+    if image_names is None and use_video:
+        vid = threads.pick_video_for_text(post_text)
+        if vid:
+            image_names = [vid.name]
     if image_names is None:
-        target_cnt = random.choice([2, 3]) if threads.is_pov_post(post_text) else 1
+        target_cnt = threads.pick_pov_image_count() if threads.is_pov_post(post_text) else 1
         picked = threads.pick_memes_for_text(post_text, count=target_cnt)
         image_names = [p.name for p in picked]
     items[str(counter)] = {"text": post_text, "images": image_names, "reply": reply_text}
@@ -131,7 +135,7 @@ def peek_draft_item(draft_id: int | None = None) -> tuple[int | None, str | None
     if key not in items:
         return None, None, []
     entry = items[key]
-    all_memes = {p.name: p for p in threads.list_meme_images()}
+    all_memes = {p.name: p for p in threads.list_all_media()}
     paths = [all_memes[name] for name in entry.get("images", []) if name in all_memes]
     return int(key), entry.get("text", ""), paths
 
@@ -145,8 +149,13 @@ def update_draft_images(draft_id: int | None = None) -> tuple[int | None, str | 
     if key not in items:
         return None, None, []
     post_text = items[key].get("text", "")
-    target_cnt = random.choice([2, 3]) if threads.is_pov_post(post_text) else 1
-    picked = threads.pick_memes_for_text(post_text, count=target_cnt)
+    cur_names = items[key].get("images", [])
+    if any(threads.is_video_name(n) for n in cur_names):
+        v = threads.pick_video_for_text(post_text, avoid=cur_names)
+        picked = [v] if v else []
+    else:
+        target_cnt = threads.pick_pov_image_count() if threads.is_pov_post(post_text) else 1
+        picked = threads.pick_memes_for_text(post_text, count=target_cnt)
     items[key]["images"] = [p.name for p in picked]
     DRAFTS_FILE.write_text(json.dumps({"counter": counter, "items": items}, ensure_ascii=False, indent=2), encoding="utf-8")
     return int(key), post_text, picked
@@ -162,7 +171,7 @@ def pop_draft_item(draft_id: int | None = None) -> tuple[int | None, str | None,
         return None, None, []
     entry = items.pop(key)
     DRAFTS_FILE.write_text(json.dumps({"counter": counter, "items": items}, ensure_ascii=False, indent=2), encoding="utf-8")
-    all_memes = {p.name: p for p in threads.list_meme_images()}
+    all_memes = {p.name: p for p in threads.list_all_media()}
     paths = [all_memes[name] for name in entry.get("images", []) if name in all_memes]
     return int(key), entry.get("text", ""), paths
 
@@ -209,14 +218,97 @@ def load_skills_text(skill_names: list[str]) -> str:
     return "\n\n".join(blocks)
 
 
+TOPICS_FILE = HERE / "topics.json"
+TOPIC_STATE_FILE = HERE / "topic_state.json"
+
+
+def _load_topics() -> dict:
+    try:
+        return json.loads(TOPICS_FILE.read_text(encoding="utf-8-sig"))
+    except Exception:
+        return {}
+
+
+def _pick_fresh(pool_name: str, pool: list[str], state: dict) -> str:
+    used = state.get(pool_name, [])
+    fresh = [x for x in pool if x not in used[-max(len(pool) - 1, 1):]] or list(pool)
+    choice = random.choice(fresh)
+    state[pool_name] = (used + [choice])[-len(pool):]
+    return choice
+
+
+def build_topic_seed(prompt: str) -> str:
+    """Chọn ngẫu nhiên (có nhớ để không lặp) chủ đề/kiểu mở đầu và gắn vào yêu cầu, ép bài mới đa dạng."""
+    low = prompt.lower()
+    topics = _load_topics()
+    if not topics:
+        return ""
+    try:
+        state = json.loads(TOPIC_STATE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        state = {}
+    seed = ""
+    # Nếu người dùng tự đưa ý tưởng (vd: /pov đi họp quên tắt mic) -> dùng ĐÚNG ý tưởng đó, bỏ chủ đề ngẫu nhiên
+    idea = re.sub(r"theo nhánh pov meme 1 câu cực ngắn mở đầu bằng 'pov:'", " ", low)
+    idea = re.sub(r"/(?:tofu|mofu|bofu|pov|video|usevideo|wait|auto)\b|\bthreads\b|\bfacebook\b|(?<!\w)\d+(?!\w)", " ", idea)
+    idea = re.sub(r"\s+", " ", idea).strip(" .,:;-")
+    if len(idea) >= 4:
+        if "/tofu" in low and "pov" in low:
+            o = _pick_fresh("pov_openers", topics.get("pov_openers", []), state) if topics.get("pov_openers") else "Pov: T đang ..."
+            mention = random.random() < 0.4
+            seed = (
+                f"Ý TƯỞNG CỦA NGƯỜI DÙNG (BẮT BUỘC dùng làm tình huống chính, KHÔNG thay bằng chủ đề khác, KHÔNG lặp lại bài cũ trong log): \"{idea}\". "
+                f"Viết lại thành 1 câu POV hoàn toàn mới, tự nhiên, đời thường. KIỂU MỞ ĐẦU gợi ý: {o}. "
+                + ("Được nhắc thoáng 'xé túi mù' đúng 1 lần." if mention else "KHÔNG nhắc túi mù, blind box, thẻ bài, game hay sản phẩm.")
+            )
+        else:
+            seed = f"Ý TƯỞNG CỦA NGƯỜI DÙNG (BẮT BUỘC làm chủ đề chính, viết mới hoàn toàn, không lặp bài cũ): \"{idea}\"."
+        try:
+            TOPIC_STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+        return seed
+    if "/tofu" in low and ("pov" in low):
+        t = _pick_fresh("pov_topics", topics.get("pov_topics", []), state) if topics.get("pov_topics") else ""
+        o = _pick_fresh("pov_openers", topics.get("pov_openers", []), state) if topics.get("pov_openers") else "Pov: T đang ..."
+        mention = random.random() < 0.4
+        seed = (
+            f"GỢI Ý CHỦ ĐỀ (BẮT BUỘC theo): tình huống đời sống: {t}. KIỂU MỞ ĐẦU: {o}. "
+            + ("Được nhắc thoáng 'xé túi mù' đúng 1 lần như chi tiết đời thường." if mention
+               else "KHÔNG nhắc túi mù, blind box, thẻ bài, game hay sản phẩm nào trong bài.")
+        )
+    elif "/tofu" in low:
+        t = _pick_fresh("story_topics", topics.get("story_topics", []), state) if topics.get("story_topics") else ""
+        seed = f"GỢI Ý CHỦ ĐỀ (BẮT BUỘC theo): kể lại tình huống: {t}. Nhắc thoáng 'xé túi mù' nếu hợp, không nói trinh thám."
+    elif "/mofu" in low:
+        t = _pick_fresh("mofu_angles", topics.get("mofu_angles", []), state) if topics.get("mofu_angles") else ""
+        seed = f"GỢI Ý GÓC TIẾP CẬN (BẮT BUỘC theo): {t}. Chỉ dùng thông tin trong phần ĐƯỢC PHÉP DÙNG."
+    elif "/bofu" in low:
+        t = _pick_fresh("bofu_angles", topics.get("bofu_angles", []), state) if topics.get("bofu_angles") else ""
+        seed = f"GỢI Ý GÓC BÁN (BẮT BUỘC theo): {t}."
+    if seed:
+        try:
+            TOPIC_STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+    return seed
+
+
+
 def read_recent_log() -> str:
     log_path = ROOT / "content-log.csv"
     if not log_path.exists():
         return "Date,Funnel_Tier,Channel,Angle_Used,Opening_Hook"
     lines = log_path.read_text(encoding="utf-8-sig").strip().splitlines()
     header = lines[0] if lines else "Date,Funnel_Tier,Channel,Angle_Used,Opening_Hook"
-    tail = lines[-10:] if len(lines) > 1 else []
-    return "\n".join([header] + tail)
+    tail = []
+    try:
+        for row in csv.reader(lines[-30:] if len(lines) > 1 else []):
+            if len(row) >= 5 and row[0] != "Date":
+                tail.append(f"{row[0]} | {row[1]} | {row[3][:90]} | {row[4][:90]}")
+    except Exception:
+        tail = lines[-30:]
+    return "\n".join(["Date | Tier | Angle | Opening_Hook"] + tail)
 
 
 def append_csv_rows(reply: str) -> tuple[str, int]:
@@ -253,7 +345,7 @@ def build_instructions(prompt: str) -> str:
         rule
         + "\n\n---\n# PRODUCT CONTEXT\n" + ctx
         + "\n\n---\n# LOADED SKILLS (.agents/skills/)\n" + skills_txt
-        + "\n\n---\n# RECENT CONTENT LOG (content-log.csv - last 10 rows)\n" + recent_log
+        + "\n\n---\n# RECENT CONTENT LOG (content-log.csv - last 30 rows)\n" + recent_log + "\n(QUY TẮC CHỐNG LẶP: KHÔNG dùng lại chủ đề, tình huống, từ khóa chính hay cấu trúc câu mở của bất kỳ dòng nào ở trên. Đặc biệt tránh lặp các mô-típ đã xuất hiện nhiều: lật thẻ, hung thủ, xé túi mù, bạn thân thề dối, cả đám quay mặt nhìn. Luôn đi theo GỢI Ý CHỦ ĐỀ trong yêu cầu.)"
         + "\n\n---\n# TELEGRAM & LOGGING MODE\n"
         f"Hôm nay là {today}. Người dùng ra lệnh qua Telegram.\n"
         "- Trả lời ngắn gọn, không dùng bảng markdown, không dùng LaTeX.\n"
@@ -262,9 +354,10 @@ def build_instructions(prompt: str) -> str:
         "  + Viết như một người trẻ đang kể lại trải nghiệm thật / tâm sự sau buổi đi cà phê với bạn bè, KHÔNG viết theo công thức quảng cáo.\n"
         "  + HẠN CHẾ XUỐNG DÒNG NHIỀU: Viết liền mạch thành 1 đến tối đa 2 đoạn văn ngắn gọn cho cả bài. Tuyệt đối KHÔNG ngắt mỗi câu một dòng rời rạc.\n"
         "  + GIỚI HẠN ICON: Cả bài CHỈ DÙNG TỐI ĐA 1 EMOJI DUY NHẤT (hoặc chỉ dùng '=))))', ':)))').\n"
+        "- QUY TẮC RIÊNG CHO TOFU (/tofu, /pov, /auto noon): nội dung phải RỘNG, đánh vào tình huống đời sống ai cũng đồng cảm (tụ tập bạn bè cắm mặt điện thoại, tiêu tiền tự thưởng, xả stress sau giờ làm, cãi nhau chuyện nhỏ, đứa bạn hay nói dối). Về sản phẩm CHỈ được nhắc thoáng 'xé túi mù' như một chi tiết đời thường. TUYỆT ĐỐI KHÔNG dùng các từ: trinh thám, phá án, hung thủ, vụ án, hồ sơ, thẻ lời khai, board game, Mánh Mối, Bad Ending, True Ending, check var; không nêu tính năng, giá hay luật chơi. Bình luận mồi của bài TOFU cũng giữ giọng chung như vậy.\n"
         "- HAI NHÁNH BÀI TOFU TRÊN THREADS:\n"
-        "  + Nhánh A (POV Meme 1 câu - KHI người dùng gõ `/pov` hoặc luân phiên 50% khi gõ `/tofu`): Chỉ viết ĐÚNG 1 CÂU DUY NHẤT (12-28 chữ, không xuống dòng, 0 icon) mở đầu bằng 'Pov: T đang...' hoặc 'Pov: Khi t...'.\n"
-        "  + Nhánh B (Tâm sự đời thường 1-2 đoạn): Kể lại câu chuyện đi cà phê với bạn bè / xé túi mù đọc thẻ lời khai liền mạch 1-2 đoạn ngắn, hạn chế xuống dòng, 0-1 icon.\n"
+        "  + Nhánh A (POV Meme 1 câu - KHI người dùng gõ `/pov` hoặc luân phiên 50% khi gõ `/tofu`): Chỉ viết ĐÚNG 1 CÂU DUY NHẤT (12-28 chữ, không xuống dòng, 0 icon) mở đầu bằng 'Pov:' theo đúng KIỂU MỞ ĐẦU được chỉ định ở GỢI Ý CHỦ ĐỀ (không lặp 'Pov: T đang...' mãi). POV phải là tình huống ĐỜI SỐNG thuần túy (cái ví/tự thưởng, deadline, cà phê cắm mặt điện thoại, nhắn tin bị seen, đứa bạn hứa rồi bùng, đi ngủ muộn...). KHÔNG nhắc sản phẩm: chỉ khoảng 2/5 bài POV được phép có cụm 'xé túi mù' (tối đa 1 lần); 3/5 còn lại KHÔNG có túi mù/blind box/thẻ bài/game gì cả. Tuyệt đối không dùng hung thủ, phá án, lật thẻ, lời khai, vụ án.\n"
+        "  + Nhánh B (Tâm sự đời thường 1-2 đoạn): Kể lại một tình huống tụ tập bạn bè / xả stress liền mạch 1-2 đoạn ngắn, hạn chế xuống dòng, 0-1 icon, nhắc thoáng xé túi mù nếu hợp ngữ cảnh.\n"
         "- Mỗi bài Threads BẮT BUỘC ngắn gọn dưới 400 ký tự. Đặt nguyên văn nội dung đăng trong một khối ```threads ... ```; không đưa báo cáo hay ghi chú vào trong khối đó.\n"
         "- QUY TẮC THUẬT TOÁN THREADS 2026 (BẮT BUỘC):\n"
         "  + KHÔNG gắn link ngoài, KHÔNG dùng danh sách hashtag (tối đa 0-1 topic tag, tốt nhất 0), KHÔNG dùng câu mồi tương tác sáo rỗng ('thả tim nếu...', 'tag bạn bè...'). Lồng từ khóa tự nhiên (túi mù phá án, board game trinh thám, thẻ lời khai) vào câu chữ.\n"
@@ -305,6 +398,24 @@ def send_photo_preview(chat_id: int, image_paths: list[Path], caption: str = "")
     if not valid:
         if caption:
             send(chat_id, caption)
+        return
+    vids = [p for p in valid if threads.is_video_name(p.name)]
+    if vids:
+        v = vids[0]
+        try:
+            if v.stat().st_size <= 49 * 1024 * 1024:
+                with v.open("rb") as f:
+                    requests.post(
+                        f"{TG}/sendVideo",
+                        data={"chat_id": str(chat_id), "caption": caption[:1020]},
+                        files={"video": (v.name, f, "video/mp4")},
+                        timeout=180,
+                    )
+                return
+            send(chat_id, caption + f"\n\n🎬 Video: {v.name} (quá 50MB nên không xem trước được trên Telegram)")
+        except Exception as e:
+            print("send video preview error:", e)
+            send(chat_id, caption + f"\n\n🎬 Video: {v.name}")
         return
     try:
         if len(valid) == 1:
@@ -390,11 +501,11 @@ def shrink_for_threads(text: str) -> str:
     return text
 
 
-def call_openrouter_sync(chat_id: int, prompt: str) -> str:
+def call_openrouter_sync(chat_id: int, prompt: str, temperature: float = 0.7, fresh: bool = False) -> str:
     sys_prompt = build_instructions(prompt)
-    hist = HISTORY.get(chat_id, [])[-4:]
+    hist = [] if fresh else HISTORY.get(chat_id, [])[-4:]
     messages = [{"role": "system", "content": sys_prompt}] + hist + [{"role": "user", "content": prompt}]
-    reply = request_openrouter_with_retry(messages, temperature=0.7)
+    reply = request_openrouter_with_retry(messages, temperature=temperature)
     cleaned_reply, _ = append_csv_rows(reply)
     hist.append({"role": "user", "content": prompt})
     hist.append({"role": "assistant", "content": cleaned_reply})
@@ -409,7 +520,8 @@ HELP_TEXT = """📖 BẢNG ĐIỀU KHIỂN MÁNH MỐI BOT (TỐI GIẢN)
 
 1️⃣ NHÓM TẠO BÀI & ĐĂNG THREADS (5 lệnh chính):
 • /auto  — Tự chọn tầng thiếu nhất (40/40/20) & đăng Threads.
-• /pov   — Bài 1 câu "Pov: T đang..." + 2-3 ảnh Meme trượt ngang.
+• /pov   — Bài 1 câu "Pov: T đang..." + 1/2/3 ảnh Meme (phân bổ ngẫu nhiên 40/40/20).
+• /video — Bài POV 1 câu + 1 video Meme (từ assets/VIDEO MEME THREADS, vd: /video /wait).
 • /tofu  — Bài nhận diện đời thường (thêm nội dung tùy ý, vd: /tofu cà phê).
 • /mofu  — Bài tranh luận lời khai vụ Tuyệt Tác Tàn Tro.
 • /bofu  — Bài mở đặt trước (Gói 150k & Combo 220k).
@@ -459,6 +571,11 @@ async def execute_and_publish(
 ) -> None:
     has_wait_flag = bool(re.search(r"(?:^|\s)/wait(?:\s|$)", prompt, flags=re.I))
     clean_prompt = re.sub(r"(?:^|\s)/wait(?:\s|$)", " ", prompt, flags=re.I).strip()
+    use_video = bool(re.search(r"(?:^|\s)/usevideo(?:\s|$)", clean_prompt, flags=re.I))
+    clean_prompt = re.sub(r"(?:^|\s)/usevideo(?:\s|$)", " ", clean_prompt, flags=re.I).strip()
+    if use_video and not threads.list_meme_videos():
+        send(chat_id, "⚠️ Kho video đang trống (assets/VIDEO MEME THREADS). Bài này sẽ dùng ảnh Meme thay thế.")
+        use_video = False
     sched = load_schedule()
     wait_mode = force_wait or has_wait_flag or bool(sched.get("wait_approval", False))
 
@@ -467,7 +584,11 @@ async def execute_and_publish(
         send(chat_id, prefix_note)
     async with lock:
         try:
-            reply = await asyncio.to_thread(call_openrouter_sync, chat_id, clean_prompt)
+            seed = build_topic_seed(clean_prompt)
+            gen_prompt = f"{clean_prompt}\n\n{seed}" if seed else clean_prompt
+            reply = await asyncio.to_thread(
+                call_openrouter_sync, chat_id, gen_prompt, 0.95 if seed else 0.7, bool(seed)
+            )
         except Exception as e:
             send(chat_id, f"⚠️ Lỗi gọi model: {e}")
             return
@@ -480,7 +601,7 @@ async def execute_and_publish(
     for idx, post in enumerate(found):
         shrunk = await asyncio.to_thread(shrink_for_threads, post.strip())
         first_reply = reply_blocks[idx] if idx < len(reply_blocks) else ""
-        did = save_draft_item(shrunk, reply_text=first_reply)
+        did = save_draft_item(shrunk, reply_text=first_reply, use_video=use_video)
         new_ids.append(did)
 
     send(chat_id, reply)
@@ -579,7 +700,9 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
     if t_low == "/anh":
         imgs = threads.list_meme_images()
         names = "\n".join(f"  {i}. {p.name}" for i, p in enumerate(imgs, 1)) or "  (Trống)"
-        send(chat_id, f"🖼️ KHO ẢNH MEME ({len(imgs)} ảnh):\n{names}")
+        vids = threads.list_meme_videos()
+        vnames = "\n".join(f"  {i}. {p.name}" for i, p in enumerate(vids, 1)) or "  (Trống)"
+        send(chat_id, f"🖼️ KHO ẢNH MEME ({len(imgs)} ảnh):\n{names}\n\n🎬 KHO VIDEO ({len(vids)} video):\n{vnames}")
         return
 
     # 2. Nhóm /wait (Bật/tắt chế độ chờ duyệt)
@@ -719,7 +842,7 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
             # 20:00 tối: Gen Z dừng đọc lâu nhất -> MOFU hoặc BOFU, tầng nào đang thiếu hơn
             tier = max(("MOFU", "BOFU"), key=lambda t: targets[t] - counts[t] / total)
         if tier == "TOFU" and (counts["TOFU"] % 2 == 0):
-            expanded = "/tofu 1 Threads theo nhánh POV Meme 1 câu cực ngắn mở đầu bằng 'Pov: T đang...'"
+            expanded = "/tofu 1 Threads theo nhánh POV Meme 1 câu cực ngắn mở đầu bằng 'Pov:'"
         else:
             expanded = f"/{tier.lower()} 1 Threads"
         note = f"{from_scheduler + ' -> ' if from_scheduler else ''}🎯 Tự động cân bằng phễu -> Chọn tầng **{tier}**..."
@@ -728,7 +851,13 @@ async def handle_command(chat_id: int, text: str, lock: asyncio.Lock, from_sched
 
     if core_low == "/pov" or core_low.startswith("/pov ") or core_low.startswith("/tofu pov"):
         extra = re.sub(r"^(/pov|/tofu\s+pov)\s*", "", core_cmd, flags=re.I).strip()
-        expanded = f"/tofu 1 Threads theo nhánh POV Meme 1 câu cực ngắn mở đầu bằng 'Pov: T đang...' {extra}".strip()
+        expanded = f"/tofu 1 Threads theo nhánh POV Meme 1 câu cực ngắn mở đầu bằng 'Pov:' {extra}".strip()
+        await execute_and_publish(chat_id, expanded, lock, prefix_note=from_scheduler, force_wait=has_wait)
+        return
+
+    if core_low == "/video" or core_low.startswith("/video "):
+        extra = re.sub(r"^/video\s*", "", core_cmd, flags=re.I).strip()
+        expanded = f"/tofu 1 Threads theo nhánh POV Meme 1 câu cực ngắn mở đầu bằng 'Pov:' /usevideo {extra}".strip()
         await execute_and_publish(chat_id, expanded, lock, prefix_note=from_scheduler, force_wait=has_wait)
         return
 
@@ -771,6 +900,7 @@ async def main() -> None:
             print("poll error:", e)
             await asyncio.sleep(5)
             continue
+        pending: list[tuple[int, str]] = []
         for upd in data.get("result", []):
             offset = upd["update_id"] + 1
             msg = upd.get("message") or {}
@@ -785,6 +915,15 @@ async def main() -> None:
             if chat_id not in ALLOWED:
                 send(chat_id, "Không có quyền.")
                 continue
+            # Báo NGAY đã nhận lệnh (kể cả khi bot vừa thức dậy ở phiên Cloud kế tiếp)
+            short = text if len(text) <= 60 else text[:57] + "..."
+            delay = max(0, int(time.time()) - int(msg.get("date") or time.time()))
+            if delay > 90:
+                send(chat_id, f"✅ Đã nhận lệnh: {short}\n⏳ Bạn gửi cách đây {delay // 60} phút, bot vừa thức dậy ở phiên mới nên xử lý trễ. Đang làm ngay...")
+            else:
+                send(chat_id, f"✅ Đã nhận lệnh: {short}\nĐang xử lý...")
+            pending.append((chat_id, text))
+        for chat_id, text in pending:
             await handle_command(chat_id, text, lock)
 
 

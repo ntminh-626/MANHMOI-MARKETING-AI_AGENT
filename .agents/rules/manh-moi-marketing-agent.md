@@ -37,9 +37,10 @@ Recognize and execute these exact user shortcuts (works via Antigravity chat or 
 
 - **`/tofu [số lượng/chủ đề]` (Awareness - Threads & Facebook):**
   - *Skills:* `marketing-psychology` (Curiosity Gap, Pattern Interrupt, Relatable Humor) + `copywriting` + `copy-editing`.
+  - *Nguyên tắc TOFU "Rộng, không nói sản phẩm":* Mục tiêu là chạm tệp người xem RỘNG (Gen Z, dân văn phòng, người hay tụ tập bạn bè), không phải chỉ fan trinh thám. Chủ đề lấy từ đời sống chung: tụ tập bạn bè, cả đám cắm mặt điện thoại, tiêu tiền "tự thưởng", xả stress sau giờ làm, cãi nhau vì chuyện nhỏ, đứa bạn hay nói dối, đi cà phê, chơi trò chơi nhóm. Về sản phẩm chỉ được nhắc thoáng **"xé túi mù"** hoặc **"cái trò xé túi mù"** như một chi tiết đời thường. TOFU **KHÔNG** dùng các từ: trinh thám, phá án, hung thủ, vụ án, hồ sơ, thẻ lời khai, board game, Mánh Mối, Bad/True Ending, check var. Những từ đó dành cho MOFU/BOFU. Không nêu tính năng, giá, luật chơi.
   - *2 Nhánh nội dung TOFU (luân phiên hoặc gọi trực tiếp bằng `/tofu pov` / `/tofu meme`):*
-    1. **Nhánh 1 - One-liner POV Meme (Viral Thread 1–2 câu + Ảnh Meme biểu cảm):** Cực ngắn (12–30 chữ, chỉ 1 câu duy nhất mở đầu bằng `Pov:` hoặc `POV:` hoặc tình huống sát sườn, dùng từ viết tắt tự nhiên như `t`, `mn`, `đứa bạn`...), khớp hoàn hảo với ảnh meme biểu cảm bên dưới để kéo tương tác đồng cảm khủng (Ví dụ: *"Pov: T đang nhớ lại ánh mắt của con bạn thân sau khi nó thề sống thề chết nó không phải hung thủ nhưng lật thẻ kết quả lên thì chính là nó"* hoặc *"Pov: Cả nhóm hẹn nhau đi cà phê tâm sự chuyện cuộc đời nhưng đứa nào cũng cắm mặt vô điện thoại suốt 2 tiếng"*).
-    2. **Nhánh 2 - Tâm sự trải nghiệm đời thường (1–2 đoạn ngắn liền mạch):** Kể chuyện đi chơi cà phê tụ tập bạn bè, xé túi mù đọc thẻ lời khai cãi nhau, giải tỏa căng thẳng sau giờ làm, không mùi quảng cáo.
+    1. **Nhánh 1 - One-liner POV Meme (Viral Thread 1–2 câu + Ảnh Meme biểu cảm):** Cực ngắn, PHẢI là tình huống đời sống thuần túy; chỉ khoảng 2/5 bài POV được nhắc thoáng "xé túi mù" (tối đa 1 lần), 3/5 còn lại KHÔNG nhắc sản phẩm. Số ảnh phân bổ: 1 ảnh 40% / 2 ảnh 40% / 3 ảnh 20% (12–30 chữ, chỉ 1 câu duy nhất mở đầu bằng `Pov:` hoặc `POV:`, dùng từ viết tắt tự nhiên như `t`, `mn`, `đứa bạn`...), tình huống ai cũng đồng cảm, khớp với ảnh meme biểu cảm bên dưới (Ví dụ: *"Pov: T đang nhớ lại số tiền sau khi đã tự thưởng cho bản thân quá nhiều"*, *"Pov: Cả nhóm hẹn nhau đi cà phê tâm sự chuyện cuộc đời nhưng đứa nào cũng cắm mặt vô điện thoại suốt 2 tiếng"*, *"Pov: T nhìn lại cái ví sau khi bảo chỉ xé thêm đúng 1 túi mù nữa thôi rồi đi ngủ"*).
+    2. **Nhánh 2 - Tâm sự trải nghiệm đời thường (1–2 đoạn ngắn liền mạch):** Kể chuyện tụ tập bạn bè, giải tỏa căng thẳng sau giờ làm, cả bàn bỏ điện thoại xuống nói chuyện, nhắc thoáng "xé túi mù" nếu hợp, không mùi quảng cáo.
 
 - **`/mofu [số lượng/manh mối]` (Engagement & ARG Deduction - Threads & Facebook):**
   - *Skills:* `copywriting` + `copy-editing` + `image` (for crime-scene/evidence visual prompts).
@@ -111,12 +112,12 @@ Recognize and execute these exact user shortcuts (works via Antigravity chat or 
 
 #### A. Threads Blueprint (Ngắn gọn < 380 ký tự, 1–2 đoạn liền mạch, hạn chế xuống dòng, 0–1 icon, không mùi quảng cáo)
 - **Xưng hô:** *t / tui / mình / cả đám / mấy đứa bạn*.
-- **Mẫu chuẩn 1A (Few-shot - TOFU Nhánh POV Meme 1 câu cực ngắn kiểu Viral Thread + Ảnh Meme):**
-  > Pov: T đang nhớ lại lời thề độc của thằng bạn thân trước khi cả đám lật hồ sơ lên và phát hiện nó chính là hung thủ
-- **Mẫu chuẩn 1B (Few-shot - TOFU Nhánh POV Meme đời thường tụ tập/xé túi mù):**
-  > Pov: T đang nhìn lại cái ví sau khi bảo "chỉ xé thêm đúng 1 túi mù nhân vật nữa thôi rồi đi ngủ"
-- **Mẫu chuẩn 1C (Few-shot - TOFU Nhánh Tâm sự tụ tập bạn bè, liền mạch 1–2 đoạn):**
-  > Haizzz.... tối qua hẹn 3 đứa bạn ra cà phê tính ngồi tám chuyện chút mà chưa được 15 phút là đứa nào đứa nấy lại rút điện thoại ra lướt trong vô thức... Cũng may tui thủ sẵn mấy gói túi mù hồ sơ vụ án trong balo, quăng ra bàn bảo mỗi đứa tự xé 1 túi đọc lời khai đi rồi tìm coi ai là hung thủ.
+- **Mẫu chuẩn 1A (Few-shot - TOFU Nhánh POV Meme 1 câu, đời thường, không nhắc sản phẩm):**
+  > Pov: T đang nhớ lại số tiền sau khi đã tự thưởng cho bản thân quá nhiều
+- **Mẫu chuẩn 1B (Few-shot - TOFU Nhánh POV Meme, chỉ nhắc thoáng xé túi mù):**
+  > Pov: T đang nhìn lại cái ví sau khi bảo "chỉ xé thêm đúng 1 túi mù nữa thôi rồi đi ngủ"
+- **Mẫu chuẩn 1C (Few-shot - TOFU Nhánh Tâm sự tụ tập bạn bè, liền mạch 1–2 đoạn, không nói trinh thám):**
+  > Haizzz.... tối qua hẹn 3 đứa bạn ra cà phê tính ngồi tám chuyện chút mà chưa được 15 phút là đứa nào đứa nấy lại rút điện thoại ra lướt trong vô thức... Cũng may tui có mang theo mấy túi mù, quăng ra bàn bảo mỗi đứa xé 1 cái đi rồi thử đoán xem đứa nào xui nhất.
   >
   > Tự nhiên cả bàn bỏ điện thoại xuống cãi nhau um sùm suốt cả tiếng đồng hồ luôn =)))) Công nhận lâu lắm rồi đi cà phê mới thấy tụi nó nói chuyện với nhau nhiều vậy á 😭
 - **Mẫu chuẩn 2 (Few-shot - MOFU - Kể chuyện cãi nhau khi giải án, liền mạch 1–2 đoạn):**

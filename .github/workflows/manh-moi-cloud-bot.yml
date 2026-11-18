@@ -8,16 +8,22 @@ on:
 
 concurrency:
   group: manh-moi-telegram-bot
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     timeout-minutes: 32
     steps:
+      - name: Keepalive (chống GitHub tự tắt lịch sau 60 ngày)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api -X PUT repos/${{ github.repository }}/actions/workflows/manh-moi-cloud-bot.yml/enable || true
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -44,5 +50,5 @@ jobs:
         run: |
           git config user.name "Manh Moi AI Bot"
           git config user.email "ntminh626@gmail.com"
-          git add content-log.csv telegram_bot/schedule.json telegram_bot/used_images.json || true
-          git diff --staged --quiet || (git commit -m "chore: auto-update content-log and schedule" && git push)
+          git add content-log.csv telegram_bot/schedule.json telegram_bot/used_images.json telegram_bot/drafts.json telegram_bot/topic_state.json || true
+          git diff --staged --quiet || (git commit -m "chore: auto-update content-log and schedule" && git pull --rebase -X theirs && git push)
