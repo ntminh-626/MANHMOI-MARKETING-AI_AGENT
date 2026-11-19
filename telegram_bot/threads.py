@@ -25,12 +25,15 @@ VIDEO_EXTS = {".mp4", ".mov"}
 
 def pick_topic_tag(text: str) -> str | None:
     """Chọn 1 topic tag (Threads chỉ cho 1 tag/bài) khớp nội dung nhất; ưu tiên tag đang hot, tránh lặp tag vừa dùng."""
-    if os.environ.get("THREADS_TOPIC_TAG", "true").lower() not in ("1", "true", "yes"):
+    if os.environ.get("THREADS_TOPIC_TAG", "false").lower() not in ("1", "true", "yes"):
         return None
     try:
         cfg = json.loads((HERE / "topics.json").read_text(encoding="utf-8-sig"))
     except Exception:
         return None
+    fixed = str(cfg.get("fixed_tag", "")).strip()
+    if fixed:
+        return fixed[:50]  # luôn dùng 1 tag cố định (đặt "fixed_tag" = "" trong topics.json để quay lại tự chọn theo nội dung)
     pool = cfg.get("topic_tags", [])
     hot = {h.lower() for h in cfg.get("hot_tags", [])}
     t = text.lower()

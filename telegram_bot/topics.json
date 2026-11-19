@@ -71,7 +71,7 @@
     "mỗi pack nhân vật mới mở ra một góc nhìn mới, chơi lại không chán",
     "quà tặng cho đứa bạn thích suy luận mà khó chiều"
   ],
-  "topic_tags_ghi_chu": "Threads API chỉ cho 1 topic tag/bài. Bot chọn tag khớp nhất với nội dung (theo keywords), ưu tiên tag trong hot_tags. Sửa hot_tags theo xu hướng đang lên trên Threads (mục Tìm kiếm/Trending). Không dùng dấu chấm hoặc &.",
+  "topic_tags_ghi_chu": "Tag đang TẮT mặc định. Muốn bật lại: đặt biến THREADS_TOPIC_TAG=true (GitHub Secrets/.env).",
   "topic_tags": [
     {
       "tag": "board game",
