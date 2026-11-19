@@ -1,5 +1,5 @@
 {
-  "counter": 11,
+  "counter": 12,
   "items": {
     "3": {
       "text": "Pov: T đang nhớ lại lời thề 'tui không phải hung thủ' của bạn thân trước khi lật thẻ bài lên",
@@ -9,6 +9,13 @@
         "meme meo xin các cụ.jpg"
       ],
       "reply": ""
+    },
+    "12": {
+      "text": "Pov: Khi t mở tủ lạnh nửa đêm nhìn chằm chằm mà không biết mình đang tìm cái gì.",
+      "images": [
+        "vlipsy-gta-san-andreas-mission-passed-2cBTZ4EW.mp4"
+      ],
+      "reply": "Có lẽ t chỉ mở tủ để nhìn cái ánh sáng trong đó thôi."
     }
   }
 }
