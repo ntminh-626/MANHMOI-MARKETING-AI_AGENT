@@ -1,0 +1,10 @@
+name = "manhmoi-bot"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+ALLOWED_CHAT_IDS = "6485371528"
+GH_REPO = "ntminh-626/MANHMOI-MARKETING-AI_AGENT"
+
+[triggers]
+crons = ["*/5 * * * *"]
