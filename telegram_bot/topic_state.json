@@ -3,7 +3,8 @@
     "thấy tin nhắn nhóm 99+ mà chẳng có gì quan trọng",
     "deadline sáng mai mà giờ mới mở file ra làm",
     "đứa bạn kể chuyện bí mật xong dặn 'đừng nói ai' rồi cả nhóm đều biết",
-    "mở tủ lạnh lúc nửa đêm nhìn chằm chằm không biết tìm gì"
+    "mở tủ lạnh lúc nửa đêm nhìn chằm chằm không biết tìm gì",
+    "đứa bạn kể chuyện 'tuần trước' nhưng mỗi lần kể lại một khác"
   ],
   "pov_openers": [
     "Pov: T mà ...",
@@ -11,7 +12,8 @@
     "Pov: T đang ...",
     "Pov: Mới đó mà t ...",
     "Pov: Khi t ...",
-    "Pov: Cái cảnh t ..."
+    "Pov: Cái cảnh t ...",
+    "Pov: Cả nhóm ..."
   ],
   "used_tags": [
     "meme",
